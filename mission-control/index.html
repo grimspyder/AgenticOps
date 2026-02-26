@@ -776,6 +776,243 @@
             .sidebar { display: none; }
             .detail-panel { width: 100%; right: -100%; }
         }
+
+        /* ===================
+           Notes Section
+           =================== */
+        .notes-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .note-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+        }
+
+        .note-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .note-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .note-author {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .note-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            background: rgba(88, 166, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--accent-blue);
+        }
+
+        .note-type {
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 3px;
+            text-transform: uppercase;
+        }
+
+        .type-update { background: rgba(88, 166, 255, 0.15); color: var(--accent-blue); }
+        .type-progress { background: rgba(57, 197, 207, 0.15); color: var(--accent-cyan); }
+        .type-blocker { background: rgba(248, 81, 73, 0.15); color: var(--accent-red); }
+        .type-idea { background: rgba(163, 113, 247, 0.15); color: var(--accent-purple); }
+        .type-summary { background: rgba(63, 185, 80, 0.15); color: var(--accent-green); }
+
+        .note-content {
+            font-size: 13px;
+            line-height: 1.5;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .note-time {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        /* ===================
+           Messages Section
+           =================== */
+        .messages-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .message-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+        }
+
+        .message-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .message-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .message-author {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .message-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            background: rgba(163, 113, 247, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--accent-purple);
+        }
+
+        .message-type {
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 3px;
+            text-transform: uppercase;
+        }
+
+        .msg-issue { background: rgba(248, 81, 73, 0.15); color: var(--accent-red); }
+        .msg-idea { background: rgba(163, 113, 247, 0.15); color: var(--accent-purple); }
+        .msg-note { background: rgba(88, 166, 255, 0.15); color: var(--accent-blue); }
+        .msg-question { background: rgba(210, 153, 34, 0.15); color: var(--accent-yellow); }
+        .msg-discussion { background: rgba(139, 148, 158, 0.15); color: var(--text-secondary); }
+
+        .message-content {
+            font-size: 13px;
+            line-height: 1.5;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .message-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .message-time {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .message-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .message-action-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 12px;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .message-action-btn:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .message-replies {
+            margin-top: 12px;
+            padding-left: 16px;
+            border-left: 2px solid var(--border);
+        }
+
+        .reply-item {
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .reply-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .reply-author {
+            font-size: 12px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .reply-content {
+            font-size: 12px;
+            line-height: 1.4;
+            color: var(--text-secondary);
+        }
+
+        .reply-time {
+            font-size: 10px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* Tab navigation for detail panel */
+        .detail-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 8px;
+        }
+
+        .detail-tab {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            background: none;
+            border: none;
+        }
+
+        .detail-tab:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .detail-tab.active {
+            background: var(--accent-blue);
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -932,6 +1169,28 @@
                     <!-- Tasks rendered by JS -->
                 </div>
             </div>
+
+            <!-- Agent Notes Section -->
+            <div class="detail-section">
+                <div class="detail-section-header">
+                    <div class="detail-section-title" id="detail-notes-count">Agent Notes</div>
+                    <button class="btn btn-sm" onclick="App.openNewNoteModal()">+ Add Note</button>
+                </div>
+                <div class="notes-list" id="detail-notes">
+                    <!-- Notes rendered by JS -->
+                </div>
+            </div>
+
+            <!-- Message Board Section -->
+            <div class="detail-section">
+                <div class="detail-section-header">
+                    <div class="detail-section-title" id="detail-messages-count">Discussion</div>
+                    <button class="btn btn-sm" onclick="App.openNewMessageModal()">+ New Post</button>
+                </div>
+                <div class="messages-list" id="detail-messages">
+                    <!-- Messages rendered by JS -->
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1017,6 +1276,105 @@
             <div class="modal-footer">
                 <button type="button" class="btn" onclick="App.closeNewTaskModal()">Cancel</button>
                 <button type="submit" class="btn btn-primary">Add Task</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- New Note Modal -->
+    <div class="modal" id="newNoteModal">
+        <div class="modal-header">
+            <div class="modal-title">Add Agent Note</div>
+            <button class="detail-close" onclick="App.closeNewNoteModal()">×</button>
+        </div>
+        <form id="newNoteForm">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Author</label>
+                    <select class="form-select" name="author" id="noteAuthor">
+                        <option value="">Select agent</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Note Type</label>
+                    <select class="form-select" name="noteType">
+                        <option value="update">Update</option>
+                        <option value="progress">Progress</option>
+                        <option value="blocker">Blocker</option>
+                        <option value="idea">Idea</option>
+                        <option value="summary">Summary</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Note Content *</label>
+                    <textarea class="form-textarea" name="content" required placeholder="What did you work on? What needs to be done next? Any blockers?"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn" onclick="App.closeNewNoteModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Add Note</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- New Message Modal -->
+    <div class="modal" id="newMessageModal">
+        <div class="modal-header">
+            <div class="modal-title">Start Discussion</div>
+            <button class="detail-close" onclick="App.closeNewMessageModal()">×</button>
+        </div>
+        <form id="newMessageForm">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Author</label>
+                    <select class="form-select" name="author" id="messageAuthor">
+                        <option value="">Select agent</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Message Type</label>
+                    <select class="form-select" name="messageType">
+                        <option value="note">Note</option>
+                        <option value="issue">Issue</option>
+                        <option value="idea">Idea</option>
+                        <option value="question">Question</option>
+                        <option value="discussion">Discussion</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Message *</label>
+                    <textarea class="form-textarea" name="content" required placeholder="Share your thoughts, ask a question, or raise an issue..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn" onclick="App.closeNewMessageModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Post Message</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Reply Modal -->
+    <div class="modal" id="replyModal">
+        <div class="modal-header">
+            <div class="modal-title">Reply</div>
+            <button class="detail-close" onclick="App.closeReplyModal()">×</button>
+        </div>
+        <form id="replyForm">
+            <div class="modal-body">
+                <input type="hidden" id="replyMessageId" value="">
+                <div class="form-group">
+                    <label class="form-label">Author</label>
+                    <select class="form-select" name="author" id="replyAuthor">
+                        <option value="">Select agent</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Reply *</label>
+                    <textarea class="form-textarea" name="content" required placeholder="Your reply..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn" onclick="App.closeReplyModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Reply</button>
             </div>
         </form>
     </div>

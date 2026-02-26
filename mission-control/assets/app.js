@@ -161,6 +161,12 @@ const App = {
         // Render tasks
         this.renderProjectTasks(project);
         
+        // Render notes
+        this.renderProjectNotes(project);
+        
+        // Render messages
+        this.renderProjectMessages(project);
+        
         // Show panel
         document.getElementById('detailPanel').classList.add('open');
         document.getElementById('modalOverlay').classList.add('open');
@@ -202,6 +208,140 @@ const App = {
         if (project.tasks.length === 0) {
             container.innerHTML = '<div style="padding: 20px; color: var(--text-muted); text-align: center;">No tasks yet. Add one below.</div>';
         }
+    },
+    
+    // ===================
+    // Project Notes
+    // ===================
+    
+    renderProjectNotes(project) {
+        const container = document.getElementById('detail-notes');
+        const notesCount = document.getElementById('detail-notes-count');
+        const notes = project.notes || [];
+        
+        notesCount.textContent = `Agent Notes (${notes.length})`;
+        
+        container.innerHTML = notes.map(note => {
+            const noteTypeClass = this.getNoteTypeClass(note.noteType);
+            const noteTypeLabel = this.getNoteTypeLabel(note.noteType);
+            
+            return `
+                <div class="note-item">
+                    <div class="note-header">
+                        <div class="note-author">
+                            <span class="note-avatar">${note.author.split(' ').map(n => n[0]).join('')}</span>
+                            <span>${this.escapeHtml(note.author)}</span>
+                        </div>
+                        <span class="note-type ${noteTypeClass}">${noteTypeLabel}</span>
+                    </div>
+                    <div class="note-content">${this.escapeHtml(note.content)}</div>
+                    <div class="note-time">${this.formatTime(note.createdAt)}</div>
+                </div>
+            `;
+        }).join('');
+        
+        if (notes.length === 0) {
+            container.innerHTML = '<div style="padding: 16px; color: var(--text-muted); text-align: center; font-size: 13px;">No notes yet. Agents can add notes to track progress.</div>';
+        }
+    },
+    
+    getNoteTypeClass(noteType) {
+        const types = {
+            'update': 'type-update',
+            'progress': 'type-progress',
+            'blocker': 'type-blocker',
+            'idea': 'type-idea',
+            'summary': 'type-summary'
+        };
+        return types[noteType] || 'type-update';
+    },
+    
+    getNoteTypeLabel(noteType) {
+        const labels = {
+            'update': 'Update',
+            'progress': 'Progress',
+            'blocker': 'Blocker',
+            'idea': 'Idea',
+            'summary': 'Summary'
+        };
+        return labels[noteType] || 'Note';
+    },
+    
+    // ===================
+    // Project Messages
+    // ===================
+    
+    renderProjectMessages(project) {
+        const container = document.getElementById('detail-messages');
+        const messagesCount = document.getElementById('detail-messages-count');
+        const messages = project.messages || [];
+        
+        messagesCount.textContent = `Discussion (${messages.length})`;
+        
+        container.innerHTML = messages.map(message => {
+            const msgTypeClass = this.getMessageTypeClass(message.messageType);
+            const msgTypeLabel = this.getMessageTypeLabel(message.messageType);
+            const replies = message.replies || [];
+            
+            return `
+                <div class="message-item">
+                    <div class="message-header">
+                        <div class="message-author">
+                            <span class="message-avatar">${message.author.split(' ').map(n => n[0]).join('')}</span>
+                            <span>${this.escapeHtml(message.author)}</span>
+                        </div>
+                        <span class="message-type ${msgTypeClass}">${msgTypeLabel}</span>
+                    </div>
+                    <div class="message-content">${this.escapeHtml(message.content)}</div>
+                    <div class="message-footer">
+                        <span class="message-time">${this.formatTime(message.createdAt)}</span>
+                        <div class="message-actions">
+                            <button class="message-action-btn" onclick="App.openReplyModal('${message.id}')">💬 Reply</button>
+                            <button class="message-action-btn" onclick="App.upvoteMessage('${project.id}', '${message.id}')">
+                                👍 ${message.upvotes?.length || 0}
+                            </button>
+                        </div>
+                    </div>
+                    ${replies.length > 0 ? `
+                        <div class="message-replies">
+                            ${replies.map(reply => `
+                                <div class="reply-item">
+                                    <div class="reply-author">${this.escapeHtml(reply.author)}</div>
+                                    <div class="reply-content">${this.escapeHtml(reply.content)}</div>
+                                    <div class="reply-time">${this.formatTime(reply.createdAt)}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }).join('');
+        
+        if (messages.length === 0) {
+            container.innerHTML = '<div style="padding: 16px; color: var(--text-muted); text-align: center; font-size: 13px;">No messages yet. Start a discussion!</div>';
+        }
+    },
+    
+    getMessageTypeClass(messageType) {
+        const types = {
+            'issue': 'msg-issue',
+            'idea': 'msg-idea',
+            'note': 'msg-note',
+            'question': 'msg-question',
+            'discussion': 'msg-discussion'
+        };
+        return types[messageType] || 'msg-note';
+    },
+    
+    getMessageTypeLabel(messageType) {
+        const labels = {
+            'issue': 'Issue',
+            'idea': 'Idea',
+            'note': 'Note',
+            'question': 'Question',
+            'discussion': 'Discussion'
+        };
+        return labels[messageType] || 'Message';
     },
     
     // ===================
@@ -299,6 +439,126 @@ const App = {
     },
     
     // ===================
+    // Notes Modals & Actions
+    // ===================
+    
+    openNewNoteModal() {
+        if (!this.selectedProject) return;
+        document.getElementById('newNoteModal').classList.add('open');
+        document.getElementById('modalOverlay').classList.add('open');
+        
+        // Populate author dropdown with agents
+        const select = document.getElementById('noteAuthor');
+        select.innerHTML = DataStore.agents.map(a => `<option value="${a.name}">${a.name}</option>`).join('') +
+            '<option value="Human">Human</option>';
+    },
+    
+    closeNewNoteModal() {
+        document.getElementById('newNoteModal').classList.remove('open');
+        document.getElementById('modalOverlay').classList.remove('open');
+        document.getElementById('newNoteForm').reset();
+    },
+    
+    saveNewNote() {
+        if (!this.selectedProject) return;
+        
+        const form = document.getElementById('newNoteForm');
+        const formData = new FormData(form);
+        
+        DataStore.addProjectNote(this.selectedProject.id, {
+            author: formData.get('author'),
+            authorRole: 'agent',
+            content: formData.get('content'),
+            noteType: formData.get('noteType')
+        });
+        
+        this.closeNewNoteModal();
+        this.openProjectDetail(this.selectedProject.id);
+        this.render();
+    },
+    
+    // ===================
+    // Messages Modals & Actions
+    // ===================
+    
+    openNewMessageModal() {
+        if (!this.selectedProject) return;
+        document.getElementById('newMessageModal').classList.add('open');
+        document.getElementById('modalOverlay').classList.add('open');
+        
+        // Populate author dropdown with agents
+        const select = document.getElementById('messageAuthor');
+        select.innerHTML = DataStore.agents.map(a => `<option value="${a.name}">${a.name}</option>`).join('') +
+            '<option value="Human">Human</option>';
+    },
+    
+    closeNewMessageModal() {
+        document.getElementById('newMessageModal').classList.remove('open');
+        document.getElementById('modalOverlay').classList.remove('open');
+        document.getElementById('newMessageForm').reset();
+    },
+    
+    saveNewMessage() {
+        if (!this.selectedProject) return;
+        
+        const form = document.getElementById('newMessageForm');
+        const formData = new FormData(form);
+        
+        DataStore.addProjectMessage(this.selectedProject.id, {
+            author: formData.get('author'),
+            authorRole: 'agent',
+            content: formData.get('content'),
+            messageType: formData.get('messageType')
+        });
+        
+        this.closeNewMessageModal();
+        this.openProjectDetail(this.selectedProject.id);
+        this.render();
+    },
+    
+    openReplyModal(messageId) {
+        if (!this.selectedProject) return;
+        document.getElementById('replyMessageId').value = messageId;
+        document.getElementById('replyAuthor').innerHTML = DataStore.agents.map(a => `<option value="${a.name}">${a.name}</option>`).join('') +
+            '<option value="Human">Human</option>';
+        document.getElementById('replyModal').classList.add('open');
+        document.getElementById('modalOverlay').classList.add('open');
+    },
+    
+    closeReplyModal() {
+        document.getElementById('replyModal').classList.remove('open');
+        document.getElementById('modalOverlay').classList.remove('open');
+        document.getElementById('replyForm').reset();
+    },
+    
+    saveReply() {
+        if (!this.selectedProject) return;
+        
+        const messageId = document.getElementById('replyMessageId').value;
+        const form = document.getElementById('replyForm');
+        const formData = new FormData(form);
+        
+        DataStore.replyToMessage(this.selectedProject.id, messageId, {
+            author: formData.get('author'),
+            authorRole: 'agent',
+            content: formData.get('content')
+        });
+        
+        this.closeReplyModal();
+        this.openProjectDetail(this.selectedProject.id);
+        this.render();
+    },
+    
+    upvoteMessage(projectId, messageId) {
+        DataStore.upvoteMessage(projectId, messageId, 'CurrentUser');
+        const project = DataStore.getProject(projectId);
+        if (project) {
+            this.openProjectDetail(projectId);
+        }
+        this.render();
+    },
+    
+    // ===================
     // Event Binding
     // ===================
     
@@ -308,6 +568,9 @@ const App = {
             this.closeProjectDetail();
             this.closeNewProjectModal();
             this.closeNewTaskModal();
+            this.closeNewNoteModal();
+            this.closeNewMessageModal();
+            this.closeReplyModal();
         });
         
         // Form submissions
@@ -319,6 +582,21 @@ const App = {
         document.getElementById('newTaskForm').addEventListener('submit', (e) => {
             e.preventDefault();
             this.saveNewTask();
+        });
+        
+        document.getElementById('newNoteForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.saveNewNote();
+        });
+        
+        document.getElementById('newMessageForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.saveNewMessage();
+        });
+        
+        document.getElementById('replyForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.saveReply();
         });
         
         // Close buttons
