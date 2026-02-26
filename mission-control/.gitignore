@@ -1,0 +1,4 @@
+# Mission Control Dashboard specific
+assets/*.psd
+assets/*.sketch
+*.fig

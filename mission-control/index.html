@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mission Control Dashboard</title>
+    <style>
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --bg-card: #1c2128;
+            --border: #30363d;
+            --text-primary: #e6edf3;
+            --text-secondary: #8b949e;
+            --text-muted: #6e7681;
+            --accent-blue: #58a6ff;
+            --accent-green: #3fb950;
+            --accent-yellow: #d29922;
+            --accent-red: #f85149;
+            --accent-purple: #a371f7;
+            --accent-cyan: #39c5cf;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        /* Layout */
+        .app {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            grid-template-rows: 64px 1fr;
+            height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            grid-column: 1 / -1;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: var(--bg-card);
+            border-color: var(--text-muted);
+        }
+
+        .btn-primary {
+            background: var(--accent-blue);
+            border-color: var(--accent-blue);
+        }
+
+        .btn-primary:hover {
+            background: #4393e6;
+        }
+
+        .search-box {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 8px 12px;
+            width: 300px;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .search-box::placeholder {
+            color: var(--text-muted);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            padding: 16px;
+            overflow-y: auto;
+        }
+
+        .sidebar-section {
+            margin-bottom: 24px;
+        }
+
+        .sidebar-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+            padding: 0 8px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 6px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.15s;
+            margin-bottom: 2px;
+        }
+
+        .nav-item:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            background: rgba(88, 166, 255, 0.15);
+            color: var(--accent-blue);
+        }
+
+        .nav-item-icon {
+            width: 18px;
+            text-align: center;
+        }
+
+        .nav-item-badge {
+            margin-left: auto;
+            background: var(--accent-red);
+            color: white;
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        /* Main Content */
+        .main {
+            padding: 24px;
+            overflow-y: auto;
+            background: var(--bg-primary);
+        }
+
+        /* Stats Row */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 600;
+        }
+
+        .stat-value.blue { color: var(--accent-blue); }
+        .stat-value.green { color: var(--accent-green); }
+        .stat-value.yellow { color: var(--accent-yellow); }
+        .stat-value.red { color: var(--accent-red); }
+
+        .stat-change {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* Section Header */
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        /* Project Cards Grid */
+        .projects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .project-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .project-card:hover {
+            border-color: var(--accent-blue);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        .project-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .project-name {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .project-desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .project-status {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+
+        .status-in_progress {
+            background: rgba(63, 185, 80, 0.15);
+            color: var(--accent-green);
+        }
+
+        .status-not_started {
+            background: rgba(139, 148, 158, 0.15);
+            color: var(--text-secondary);
+        }
+
+        .status-completed {
+            background: rgba(88, 166, 255, 0.15);
+            color: var(--accent-blue);
+        }
+
+        .status-blocked {
+            background: rgba(248, 81, 73, 0.15);
+            color: var(--accent-red);
+        }
+
+        .project-progress {
+            margin: 16px 0;
+        }
+
+        .progress-bar {
+            height: 6px;
+            background: var(--bg-tertiary);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-blue));
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 6px;
+        }
+
+        .project-meta {
+            display: flex;
+            gap: 16px;
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border);
+        }
+
+        .project-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Agents Grid */
+        .agents-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .agent-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .agent-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .agent-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .agent-avatar.coding { background: rgba(88, 166, 255, 0.2); }
+        .agent-avatar.research { background: rgba(163, 113, 247, 0.2); }
+        .agent-avatar.testing { background: rgba(57, 197, 207, 0.2); }
+
+        .agent-info {
+            flex: 1;
+        }
+
+        .agent-name {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .agent-role {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .agent-status {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .agent-status.active { background: var(--accent-green); box-shadow: 0 0 8px var(--accent-green); }
+        .agent-status.idle { background: var(--accent-yellow); }
+        .agent-status.error { background: var(--accent-red); }
+
+        .agent-current-task {
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+            padding: 10px;
+            font-size: 13px;
+            margin-bottom: 12px;
+        }
+
+        .agent-task-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .agent-stats {
+            display: flex;
+            gap: 16px;
+            font-size: 12px;
+        }
+
+        .agent-stat {
+            color: var(--text-secondary);
+        }
+
+        .agent-stat strong {
+            color: var(--text-primary);
+        }
+
+        .agent-issues {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border);
+        }
+
+        .issue-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(248, 81, 73, 0.15);
+            color: var(--accent-red);
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        /* Detail Panel (Slide-out) */
+        .detail-panel {
+            position: fixed;
+            top: 0;
+            right: -600px;
+            width: 600px;
+            height: 100vh;
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--border);
+            z-index: 100;
+            transition: right 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .detail-panel.open {
+            right: 0;
+        }
+
+        .detail-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .detail-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .detail-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 24px;
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .detail-content {
+            padding: 20px;
+        }
+
+        .detail-section {
+            margin-bottom: 24px;
+        }
+
+        .detail-section-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+
+        .detail-field {
+            margin-bottom: 12px;
+        }
+
+        .detail-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        .detail-value {
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .detail-value ul {
+            margin-left: 20px;
+            color: var(--text-secondary);
+        }
+
+        /* Tasks List */
+        .tasks-list {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .task-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+        }
+
+        .task-item:last-child {
+            border-bottom: none;
+        }
+
+        .task-item:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .task-checkbox {
+            width: 18px;
+            height: 18px;
+            border: 2px solid var(--border);
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .task-checkbox.checked {
+            background: var(--accent-green);
+            border-color: var(--accent-green);
+        }
+
+        .task-info {
+            flex: 1;
+        }
+
+        .task-title {
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+
+        .task-meta {
+            font-size: 12px;
+            color: var(--text-muted);
+            display: flex;
+            gap: 12px;
+        }
+
+        .task-priority {
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 3px;
+            text-transform: uppercase;
+        }
+
+        .priority-high {
+            background: rgba(248, 81, 73, 0.15);
+            color: var(--accent-red);
+        }
+
+        .priority-medium {
+            background: rgba(210, 153, 34, 0.15);
+            color: var(--accent-yellow);
+        }
+
+        .priority-low {
+            background: rgba(139, 148, 158, 0.15);
+            color: var(--text-secondary);
+        }
+
+        .task-agent {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        /* Activity Feed */
+        .activity-feed {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .activity-item {
+            display: flex;
+            gap: 12px;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+
+        .activity-icon.code { background: rgba(88, 166, 255, 0.2); }
+        .activity-icon.error { background: rgba(248, 81, 73, 0.2); }
+        .activity-icon.complete { background: rgba(63, 185, 80, 0.2); }
+
+        .activity-content {
+            flex: 1;
+        }
+
+        .activity-text {
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .activity-text strong {
+            color: var(--accent-blue);
+        }
+
+        .activity-time {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 99;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .modal-overlay.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .stats-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 900px) {
+            .app {
+                grid-template-columns: 1fr;
+            }
+            .sidebar {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <div class="logo-icon">◈</div>
+                <span>Mission Control</span>
+            </div>
+            <input type="text" class="search-box" placeholder="Search projects, tasks, agents...">
+            <div class="header-actions">
+                <button class="btn">🔔 <span class="nav-item-badge">3</span></button>
+                <button class="btn btn-primary" onclick="openNewProjectModal()">+ New Project</button>
+            </div>
+        </header>
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-section">
+                <div class="sidebar-title">Overview</div>
+                <div class="nav-item active">
+                    <span class="nav-item-icon">◉</span>
+                    Dashboard
+                </div>
+                <div class="nav-item">
+                    <span class="nav-item-icon">◫</span>
+                    All Tasks
+                    <span class="nav-item-badge">12</span>
+                </div>
+                <div class="nav-item">
+                    <span class="nav-item-icon">⚡</span>
+                    Active Agents
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-title">Views</div>
+                <div class="nav-item">
+                    <span class="nav-item-icon">▦</span>
+                    Grid View
+                </div>
+                <div class="nav-item">
+                    <span class="nav-item-icon">☰</span>
+                    List View
+                </div>
+                <div class="nav-item">
+                    <span class="nav-item-icon">▣</span>
+                    Kanban Board
+                </div>
+                <div class="nav-item">
+                    <span class="nav-item-icon">⧗</span>
+                    Timeline
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-title">Projects</div>
+                <div class="nav-item">
+                    <span class="nav-item-icon">▸</span>
+                    Cost Monitor
+                </div>
+                <div class="nav-item">
+                    <span class="nav-item-icon">▸</span>
+                    Atlas Dashboard
+                </div>
+                <div class="nav-item">
+                    <span class="nav-item-icon">▸</span>
+                    Voice Interface
+                </div>
+                <div class="nav-item" style="color: var(--accent-blue);">
+                    <span class="nav-item-icon">+</span>
+                    Add Project
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main">
+            <!-- Stats -->
+            <div class="stats-row">
+                <div class="stat-card">
+                    <div class="stat-label">Active Projects</div>
+                    <div class="stat-value blue">3</div>
+                    <div class="stat-change">1 completed this week</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Open Tasks</div>
+                    <div class="stat-value yellow">12</div>
+                    <div class="stat-change">4 due today</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Active Agents</div>
+                    <div class="stat-value green">4</div>
+                    <div class="stat-change">0 idle</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Issues</div>
+                    <div class="stat-value red">2</div>
+                    <div class="stat-change">1 new since last visit</div>
+                </div>
+            </div>
+
+            <!-- Projects Section -->
+            <div class="section-header">
+                <h2 class="section-title">Projects</h2>
+                <button class="btn">View All →</button>
+            </div>
+
+            <div class="projects-grid">
+                <!-- Project Card 1 -->
+                <div class="project-card" onclick="openProjectDetail('cost-monitor')">
+                    <div class="project-header">
+                        <div>
+                            <div class="project-name">Cost Monitor</div>
+                            <div class="project-desc">Track AI usage costs across all agents and sessions</div>
+                        </div>
+                        <span class="project-status status-in_progress">In Progress</span>
+                    </div>
+                    <div class="project-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 65%"></div>
+                        </div>
+                        <div class="progress-text">
+                            <span>65% complete</span>
+                            <span>Due Feb 28</span>
+                        </div>
+                    </div>
+                    <div class="project-meta">
+                        <div class="project-meta-item">📋 8 tasks</div>
+                        <div class="project-meta-item">🤖 2 agents</div>
+                        <div class="project-meta-item">⚠️ 1 issue</div>
+                    </div>
+                </div>
+
+                <!-- Project Card 2 -->
+                <div class="project-card">
+                    <div class="project-header">
+                        <div>
+                            <div class="project-name">Atlas Dashboard</div>
+                            <div class="project-desc">Mission control interface for managing AI operations</div>
+                        </div>
+                        <span class="project-status status-in_progress">In Progress</span>
+                    </div>
+                    <div class="project-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 40%"></div>
+                        </div>
+                        <div class="progress-text">
+                            <span>40% complete</span>
+                            <span>Due Mar 15</span>
+                        </div>
+                    </div>
+                    <div class="project-meta">
+                        <div class="project-meta-item">📋 15 tasks</div>
+                        <div class="project-meta-item">🤖 3 agents</div>
+                        <div class="project-meta-item">✓ 0 issues</div>
+                    </div>
+                </div>
+
+                <!-- Project Card 3 -->
+                <div class="project-card">
+                    <div class="project-header">
+                        <div>
+                            <div class="project-name">Voice Interface</div>
+                            <div class="project-desc">Natural language voice commands for agent control</div>
+                        </div>
+                        <span class="project-status status-not_started">Not Started</span>
+                    </div>
+                    <div class="project-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 0%"></div>
+                        </div>
+                        <div class="progress-text">
+                            <span>Not started</span>
+                            <span>TBD</span>
+                        </div>
+                    </div>
+                    <div class="project-meta">
+                        <div class="project-meta-item">📋 0 tasks</div>
+                        <div class="project-meta-item">🤖 0 agents</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Agents Section -->
+            <div class="section-header">
+                <h2 class="section-title">Active Agents</h2>
+                <button class="btn">Manage Agents →</button>
+            </div>
+
+            <div class="agents-grid">
+                <!-- Agent Card 1 -->
+                <div class="agent-card">
+                    <div class="agent-header">
+                        <div class="agent-avatar coding">CW</div>
+                        <div class="agent-info">
+                            <div class="agent-name">CodeWright</div>
+                            <div class="agent-role">Coding Agent</div>
+                        </div>
+                        <div class="agent-status active" title="Active"></div>
+                    </div>
+                    <div class="agent-current-task">
+                        <div class="agent-task-label">Currently Working On</div>
+                        <div>Building dashboard UI components</div>
+                    </div>
+                    <div class="agent-stats">
+                        <span class="agent-stat"><strong>12</strong> tasks done</span>
+                        <span class="agent-stat"><strong>2</strong> errors</span>
+                    </div>
+                    <div class="agent-issues">
+                        <span class="issue-badge">⚠️ 1 issue: API rate limit</span>
+                    </div>
+                </div>
+
+                <!-- Agent Card 2 -->
+                <div class="agent-card">
+                    <div class="agent-header">
+                        <div class="agent-avatar research">RS</div>
+                        <div class="agent-info">
+                            <div class="agent-name">Researcher</div>
+                            <div class="agent-role">Research Agent</div>
+                        </div>
+                        <div class="agent-status active" title="Active"></div>
+                    </div>
+                    <div class="agent-current-task">
+                        <div class="agent-task-label">Currently Working On</div>
+                        <div>Gathering requirements for Voice Interface</div>
+                    </div>
+                    <div class="agent-stats">
+                        <span class="agent-stat"><strong>5</strong> tasks done</span>
+                        <span class="agent-stat"><strong>0</strong> errors</span>
+                    </div>
+                </div>
+
+                <!-- Agent Card 3 -->
+                <div class="agent-card">
+                    <div class="agent-header">
+                        <div class="agent-avatar testing">QA</div>
+                        <div class="agent-info">
+                            <div class="agent-name">QA Tester</div>
+                            <div class="agent-role">Testing Agent</div>
+                        </div>
+                        <div class="agent-status idle" title="Idle"></div>
+                    </div>
+                    <div class="agent-current-task">
+                        <div class="agent-task-label">Currently Working On</div>
+                        <div style="color: var(--text-muted);">No active task</div>
+                    </div>
+                    <div class="agent-stats">
+                        <span class="agent-stat"><strong>8</strong> tasks done</span>
+                        <span class="agent-stat"><strong>0</strong> errors</span>
+                    </div>
+                </div>
+
+                <!-- Agent Card 4 -->
+                <div class="agent-card">
+                    <div class="agent-header">
+                        <div class="agent-avatar coding">AT</div>
+                        <div class="agent-info">
+                            <div class="agent-name">ATLAS</div>
+                            <div class="agent-role">Orchestration Agent</div>
+                        </div>
+                        <div class="agent-status active" title="Active"></div>
+                    </div>
+                    <div class="agent-current-task">
+                        <div class="agent-task-label">Currently Working On</div>
+                        <div>Coordinating Cost Monitor project</div>
+                    </div>
+                    <div class="agent-stats">
+                        <span class="agent-stat"><strong>25</strong> tasks coordinated</span>
+                        <span class="agent-stat"><strong>0</strong> errors</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="section-header" style="margin-top: 32px;">
+                <h2 class="section-title">Recent Activity</h2>
+            </div>
+
+            <div class="activity-feed">
+                <div class="activity-item">
+                    <div class="activity-icon code">💻</div>
+                    <div class="activity-content">
+                        <div class="activity-text"><strong>CodeWright</strong> pushed 3 commits to <strong>cost-monitor/ui</strong></div>
+                        <div class="activity-time">15 minutes ago</div>
+                    </div>
+                </div>
+                <div class="activity-item">
+                    <div class="activity-icon error">⚠️</div>
+                    <div class="activity-content">
+                        <div class="activity-text"><strong>CodeWright</strong> encountered an API rate limit issue</div>
+                        <div class="activity-time">32 minutes ago</div>
+                    </div>
+                </div>
+                <div class="activity-item">
+                    <div class="activity-icon complete">✓</div>
+                    <div class="activity-content">
+                        <div class="activity-text"><strong>Researcher</strong> completed task: "Analyze dashboard UX patterns"</div>
+                        <div class="activity-time">1 hour ago</div>
+                    </div>
+                </div>
+                <div class="activity-item">
+                    <div class="activity-icon code">📝</div>
+                    <div class="activity-content">
+                        <div class="activity-text"><strong>ATLAS</strong> created 5 new tasks for <strong>Cost Monitor</strong></div>
+                        <div class="activity-time">2 hours ago</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Detail Panel -->
+    <div class="modal-overlay" id="modalOverlay" onclick="closeProjectDetail()"></div>
+    <div class="detail-panel" id="detailPanel">
+        <div class="detail-header">
+            <div class="detail-title">Cost Monitor</div>
+            <button class="detail-close" onclick="closeProjectDetail()">×</button>
+        </div>
+        <div class="detail-content">
+            <div class="detail-section">
+                <div class="detail-section-title">Project Info</div>
+                <div class="detail-field">
+                    <div class="detail-label">Problem Statement</div>
+                    <div class="detail-value">Need a way to track and monitor AI costs across all agents and sessions to manage budget and optimize usage.</div>
+                </div>
+                <div class="detail-field">
+                    <div class="detail-label">Solution</div>
+                    <div class="detail-value">Build a real-time dashboard that aggregates cost data from all OpenClaw agents, displays usage metrics, and provides alerts for budget thresholds.</div>
+                </div>
+                <div class="detail-field">
+                    <div class="detail-label">Plan</div>
+                    <div class="detail-value">
+                        <ul>
+                            <li>Research existing cost monitoring solutions</li>
+                            <li>Design data model for cost tracking</li>
+                            <li>Build UI dashboard</li>
+                            <li>Integrate with OpenClaw cost APIs</li>
+                            <li>Add alerting system</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="detail-section">
+                <div class="detail-section-title">Tasks (8)</div>
+                <div class="tasks-list">
+                    <div class="task-item">
+                        <div class="task-checkbox checked"></div>
+                        <div class="task-info">
+                            <div class="task-title">Research dashboard UX patterns</div>
+                            <div class="task-meta">
+                                <span>Researcher</span>
+                                <span>Done</span>
+                            </div>
+                        </div>
+                        <span class="task-priority priority-high">High</span>
+                    </div>
+                    <div class="task-item">
+                        <div class="task-checkbox checked"></div>
+                        <div class="task-info">
+                            <div class="task-title">Design data model for cost tracking</div>
+                            <div class="task-meta">
+                                <span>ATLAS</span>
+                                <span>Done</span>
+                            </div>
+                        </div>
+                        <span class="task-priority priority-high">High</span>
+                    </div>
+                    <div class="task-item">
+                        <div class="task-checkbox"></div>
+                        <div class="task-info">
+                            <div class="task-title">Build dashboard UI components</div>
+                            <div class="task-meta">
+                                <span>CodeWright</span>
+                                <span>In Progress</span>
+                            </div>
+                        </div>
+                        <span class="task-priority priority-high">High</span>
+                    </div>
+                    <div class="task-item">
+                        <div class="task-checkbox"></div>
+                        <div class="task-info">
+                            <div class="task-title">Create cost aggregation service</div>
+                            <div class="task-meta">
+                                <span>CodeWright</span>
+                                <span>Pending</span>
+                            </div>
+                        </div>
+                        <span class="task-priority priority-medium">Medium</span>
+                    </div>
+                    <div class="task-item">
+                        <div class="task-checkbox"></div>
+                        <div class="task-info">
+                            <div class="task-title">Integrate with OpenClaw APIs</div>
+                            <div class="task-meta">
+                                <span>Unassigned</span>
+                                <span>Pending</span>
+                            </div>
+                        </div>
+                        <span class="task-priority priority-medium">Medium</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openProjectDetail(projectId) {
+            document.getElementById('detailPanel').classList.add('open');
+            document.getElementById('modalOverlay').classList.add('open');
+        }
+
+        function closeProjectDetail() {
+            document.getElementById('detailPanel').classList.remove('open');
+            document.getElementById('modalOverlay').classList.remove('open');
+        }
+
+        function openNewProjectModal() {
+            alert('New Project Modal would open here');
+        }
+    </script>
+</body>
+</html>
