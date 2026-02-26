@@ -1,0 +1,414 @@
+/**
+ * Mission Control Dashboard - UI Controller
+ * AgenticOps - Interactive Dashboard
+ */
+
+const App = {
+    currentView: 'dashboard',
+    selectedProject: null,
+    
+    // ===================
+    // Initialization
+    // ===================
+    
+    init() {
+        this.render();
+        this.bindEvents();
+    },
+    
+    // ===================
+    // Rendering
+    // ===================
+    
+    render() {
+        this.renderStats();
+        this.renderProjects();
+        this.renderAgents();
+        this.renderActivity();
+    },
+    
+    renderStats() {
+        const stats = DataStore.getStats();
+        
+        document.getElementById('stat-projects').textContent = stats.projects.active;
+        document.getElementById('stat-tasks').textContent = stats.tasks.open;
+        document.getElementById('stat-agents').textContent = stats.agents.active;
+        document.getElementById('stat-issues').textContent = stats.issues.unresolved;
+    },
+    
+    renderProjects() {
+        const container = document.getElementById('projects-grid');
+        const projects = DataStore.getAllProjects();
+        
+        container.innerHTML = projects.map(project => {
+            const taskCount = project.tasks.length;
+            const doneCount = project.tasks.filter(t => t.status === 'done').length;
+            const agentCount = [...new Set(project.tasks.map(t => t.assignee).filter(a => a))].length;
+            const issueCount = project.tasks.filter(t => t.status === 'blocked').length;
+            
+            return `
+                <div class="project-card" onclick="App.openProjectDetail('${project.id}')">
+                    <div class="project-header">
+                        <div>
+                            <div class="project-name">${this.escapeHtml(project.name)}</div>
+                            <div class="project-desc">${this.escapeHtml(project.description)}</div>
+                        </div>
+                        <span class="project-status status-${project.status}">${this.formatStatus(project.status)}</span>
+                    </div>
+                    <div class="project-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${project.progress}%"></div>
+                        </div>
+                        <div class="progress-text">
+                            <span>${project.progress}% complete</span>
+                            <span>${project.targetEndDate || 'TBD'}</span>
+                        </div>
+                    </div>
+                    <div class="project-meta">
+                        <div class="project-meta-item">📋 ${taskCount} tasks</div>
+                        <div class="project-meta-item">🤖 ${agentCount} agents</div>
+                        ${issueCount > 0 ? `<div class="project-meta-item">⚠️ ${issueCount} issues</div>` : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    },
+    
+    renderAgents() {
+        const container = document.getElementById('agents-grid');
+        const agents = DataStore.agents;
+        
+        container.innerHTML = agents.map(agent => {
+            const avatarInitials = agent.name.split(' ').map(n => n[0]).join('');
+            const roleClass = agent.role.toLowerCase();
+            const unresolvedIssues = agent.agentActivity?.issues?.filter(i => !i.resolved).length || 0;
+            
+            return `
+                <div class="agent-card">
+                    <div class="agent-header">
+                        <div class="agent-avatar ${roleClass}">${avatarInitials}</div>
+                        <div class="agent-info">
+                            <div class="agent-name">${this.escapeHtml(agent.name)}</div>
+                            <div class="agent-role">${this.formatRole(agent.role)}</div>
+                        </div>
+                        <div class="agent-status ${agent.status}" title="${agent.status}"></div>
+                    </div>
+                    <div class="agent-current-task">
+                        <div class="agent-task-label">Currently Working On</div>
+                        <div>${agent.currentTaskTitle || '<span style="color: var(--text-muted)">No active task</span>'}</div>
+                    </div>
+                    <div class="agent-stats">
+                        <span class="agent-stat"><strong>${agent.totalTasksCompleted}</strong> tasks done</span>
+                        <span class="agent-stat"><strong>${agent.totalErrors}</strong> errors</span>
+                    </div>
+                    ${unresolvedIssues > 0 ? `
+                        <div class="agent-issues">
+                            <span class="issue-badge">⚠️ ${unresolvedIssues} unresolved issue${unresolvedIssues > 1 ? 's' : ''}</span>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }).join('');
+    },
+    
+    renderActivity() {
+        const container = document.getElementById('activity-feed');
+        const activities = DataStore.getActivities(10);
+        
+        container.innerHTML = activities.map(activity => {
+            const iconClass = this.getActivityIcon(activity.type, activity.action);
+            const icon = this.getActivityEmoji(activity.type, activity.action);
+            
+            return `
+                <div class="activity-item">
+                    <div class="activity-icon ${iconClass}">${icon}</div>
+                    <div class="activity-content">
+                        <div class="activity-text">${this.formatActivity(activity)}</div>
+                        <div class="activity-time">${this.formatTime(activity.timestamp)}</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        if (activities.length === 0) {
+            container.innerHTML = '<div class="activity-item"><div class="activity-content"><div class="activity-text" style="color: var(--text-muted)">No recent activity</div></div></div>';
+        }
+    },
+    
+    // ===================
+    // Project Detail
+    // ===================
+    
+    openProjectDetail(projectId) {
+        const project = DataStore.getProject(projectId);
+        if (!project) return;
+        
+        this.selectedProject = project;
+        
+        // Update detail panel
+        document.getElementById('detail-title').textContent = project.name;
+        document.getElementById('detail-problem').textContent = project.problemStatement || 'No problem statement defined.';
+        document.getElementById('detail-solution').textContent = project.solution || 'No solution defined.';
+        
+        // Render plan
+        const planList = document.getElementById('detail-plan');
+        if (project.plan && project.plan.length > 0) {
+            planList.innerHTML = project.plan.map(step => `<li>${this.escapeHtml(step)}</li>`).join('');
+        } else {
+            planList.innerHTML = '<li style="color: var(--text-muted)">No plan defined.</li>';
+        }
+        
+        // Render tasks
+        this.renderProjectTasks(project);
+        
+        // Show panel
+        document.getElementById('detailPanel').classList.add('open');
+        document.getElementById('modalOverlay').classList.add('open');
+    },
+    
+    closeProjectDetail() {
+        document.getElementById('detailPanel').classList.remove('open');
+        document.getElementById('modalOverlay').classList.remove('open');
+        this.selectedProject = null;
+    },
+    
+    renderProjectTasks(project) {
+        const container = document.getElementById('detail-tasks');
+        const taskCount = document.getElementById('detail-task-count');
+        
+        taskCount.textContent = `Tasks (${project.tasks.length})`;
+        
+        container.innerHTML = project.tasks.map(task => {
+            const priorityClass = `priority-${task.priority}`;
+            const isChecked = task.status === 'done';
+            
+            return `
+                <div class="task-item" onclick="event.stopPropagation(); App.toggleTask('${project.id}', '${task.id}')">
+                    <div class="task-checkbox ${isChecked ? 'checked' : ''}" onclick="event.stopPropagation(); App.toggleTask('${project.id}', '${task.id}')">
+                        ${isChecked ? '✓' : ''}
+                    </div>
+                    <div class="task-info">
+                        <div class="task-title" style="${isChecked ? 'text-decoration: line-through; color: var(--text-muted)' : ''}">${this.escapeHtml(task.title)}</div>
+                        <div class="task-meta">
+                            <span>${task.assignee || 'Unassigned'}</span>
+                            <span>${this.formatStatus(task.status)}</span>
+                        </div>
+                    </div>
+                    <span class="task-priority ${priorityClass}">${task.priority}</span>
+                </div>
+            `;
+        }).join('');
+        
+        if (project.tasks.length === 0) {
+            container.innerHTML = '<div style="padding: 20px; color: var(--text-muted); text-align: center;">No tasks yet. Add one below.</div>';
+        }
+    },
+    
+    // ===================
+    // Actions
+    // ===================
+    
+    toggleTask(projectId, taskId) {
+        const project = DataStore.getProject(projectId);
+        const task = project.tasks.find(t => t.id === taskId);
+        
+        if (task.status === 'done') {
+            DataStore.updateTask(projectId, taskId, { status: 'pending' });
+        } else {
+            DataStore.updateTask(projectId, taskId, { status: 'done' });
+            
+            // If assigned to agent, complete the task
+            const agent = DataStore.agents.find(a => a.currentTaskId === taskId);
+            if (agent) {
+                DataStore.completeAgentTask(agent.id);
+            }
+        }
+        
+        this.render();
+        if (this.selectedProject && this.selectedProject.id === projectId) {
+            this.openProjectDetail(projectId);
+        }
+    },
+    
+    // ===================
+    // Forms & Modals
+    // ===================
+    
+    openNewProjectModal() {
+        document.getElementById('newProjectModal').classList.add('open');
+        document.getElementById('modalOverlay').classList.add('open');
+    },
+    
+    closeNewProjectModal() {
+        document.getElementById('newProjectModal').classList.remove('open');
+        document.getElementById('modalOverlay').classList.remove('open');
+        document.getElementById('newProjectForm').reset();
+    },
+    
+    saveNewProject() {
+        const form = document.getElementById('newProjectForm');
+        const formData = new FormData(form);
+        
+        DataStore.createProject({
+            name: formData.get('name'),
+            description: formData.get('description'),
+            problemStatement: formData.get('problemStatement'),
+            solution: formData.get('solution'),
+            targetEndDate: formData.get('targetEndDate'),
+            owner: formData.get('owner')
+        });
+        
+        this.closeNewProjectModal();
+        this.render();
+    },
+    
+    openNewTaskModal() {
+        if (!this.selectedProject) return;
+        document.getElementById('newTaskModal').classList.add('open');
+        document.getElementById('modalOverlay').classList.add('open');
+        
+        // Populate assignee dropdown
+        const select = document.getElementById('taskAssignee');
+        select.innerHTML = '<option value="">Unassigned</option>' +
+            DataStore.agents.map(a => `<option value="${a.name}">${a.name}</option>`).join('');
+    },
+    
+    closeNewTaskModal() {
+        document.getElementById('newTaskModal').classList.remove('open');
+        document.getElementById('modalOverlay').classList.remove('open');
+        document.getElementById('newTaskForm').reset();
+    },
+    
+    saveNewTask() {
+        if (!this.selectedProject) return;
+        
+        const form = document.getElementById('newTaskForm');
+        const formData = new FormData(form);
+        
+        DataStore.createTask(this.selectedProject.id, {
+            title: formData.get('title'),
+            description: formData.get('description'),
+            priority: formData.get('priority'),
+            assignee: formData.get('assignee'),
+            dueDate: formData.get('dueDate')
+        });
+        
+        this.closeNewTaskModal();
+        this.openProjectDetail(this.selectedProject.id);
+        this.render();
+    },
+    
+    // ===================
+    // Event Binding
+    // ===================
+    
+    bindEvents() {
+        // Close panels on overlay click
+        document.getElementById('modalOverlay').addEventListener('click', () => {
+            this.closeProjectDetail();
+            this.closeNewProjectModal();
+            this.closeNewTaskModal();
+        });
+        
+        // Form submissions
+        document.getElementById('newProjectForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.saveNewProject();
+        });
+        
+        document.getElementById('newTaskForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.saveNewTask();
+        });
+        
+        // Close buttons
+        document.querySelectorAll('.detail-close').forEach(btn => {
+            btn.addEventListener('click', () => this.closeProjectDetail());
+        });
+        
+        // Nav items
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', function() {
+                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+    },
+    
+    // ===================
+    // Utilities
+    // ===================
+    
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    },
+    
+    formatStatus(status) {
+        const statusMap = {
+            'not_started': 'Not Started',
+            'in_progress': 'In Progress',
+            'completed': 'Completed',
+            'on_hold': 'On Hold',
+            'blocked': 'Blocked',
+            'pending': 'Pending',
+            'done': 'Done',
+            'deferred': 'Deferred'
+        };
+        return statusMap[status] || status;
+    },
+    
+    formatRole(role) {
+        const roleMap = {
+            'coding': 'Coding Agent',
+            'research': 'Research Agent',
+            'testing': 'Testing Agent',
+            'orchestration': 'Orchestration Agent',
+            'general': 'General Agent'
+        };
+        return roleMap[role] || role;
+    },
+    
+    formatTime(timestamp) {
+        const date = new Date(timestamp);
+        const now = new Date();
+        const diff = now - date;
+        
+        const minutes = Math.floor(diff / 60000);
+        const hours = Math.floor(diff / 3600000);
+        const days = Math.floor(diff / 86400000);
+        
+        if (minutes < 1) return 'Just now';
+        if (minutes < 60) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+        if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+        return `${days} day${days > 1 ? 's' : ''} ago`;
+    },
+    
+    getActivityIcon(type, action) {
+        if (action === 'error') return 'error';
+        if (type === 'task' && action === 'done') return 'complete';
+        return 'code';
+    },
+    
+    getActivityEmoji(type, action) {
+        if (action === 'created') return '✨';
+        if (action === 'updated') return '📝';
+        if (action === 'deleted') return '🗑️';
+        if (action === 'error') return '⚠️';
+        if (action === 'done' || action === 'completed') return '✓';
+        if (action === 'active') return '⚡';
+        if (action === 'idle') return '💤';
+        if (action === 'assigned') return '→';
+        return '•';
+    },
+    
+    formatActivity(activity) {
+        return activity.details;
+    }
+};
+
+// Initialize app when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    App.init();
+});

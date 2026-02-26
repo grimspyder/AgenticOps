@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mission Control Dashboard</title>
+    <title>Mission Control Dashboard | AgenticOps</title>
     <style>
         :root {
             --bg-primary: #0d1117;
@@ -104,6 +104,11 @@
 
         .btn-primary:hover {
             background: #4393e6;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 13px;
         }
 
         .search-box {
@@ -286,25 +291,11 @@
             text-transform: uppercase;
         }
 
-        .status-in_progress {
-            background: rgba(63, 185, 80, 0.15);
-            color: var(--accent-green);
-        }
-
-        .status-not_started {
-            background: rgba(139, 148, 158, 0.15);
-            color: var(--text-secondary);
-        }
-
-        .status-completed {
-            background: rgba(88, 166, 255, 0.15);
-            color: var(--accent-blue);
-        }
-
-        .status-blocked {
-            background: rgba(248, 81, 73, 0.15);
-            color: var(--accent-red);
-        }
+        .status-in_progress { background: rgba(63, 185, 80, 0.15); color: var(--accent-green); }
+        .status-not_started { background: rgba(139, 148, 158, 0.15); color: var(--text-secondary); }
+        .status-completed { background: rgba(88, 166, 255, 0.15); color: var(--accent-blue); }
+        .status-on_hold { background: rgba(210, 153, 34, 0.15); color: var(--accent-yellow); }
+        .status-blocked { background: rgba(248, 81, 73, 0.15); color: var(--accent-red); }
 
         .project-progress {
             margin: 16px 0;
@@ -383,6 +374,7 @@
         .agent-avatar.coding { background: rgba(88, 166, 255, 0.2); }
         .agent-avatar.research { background: rgba(163, 113, 247, 0.2); }
         .agent-avatar.testing { background: rgba(57, 197, 207, 0.2); }
+        .agent-avatar.orchestration { background: rgba(63, 185, 80, 0.2); }
 
         .agent-info {
             flex: 1;
@@ -453,171 +445,6 @@
             border-radius: 4px;
         }
 
-        /* Detail Panel (Slide-out) */
-        .detail-panel {
-            position: fixed;
-            top: 0;
-            right: -600px;
-            width: 600px;
-            height: 100vh;
-            background: var(--bg-secondary);
-            border-left: 1px solid var(--border);
-            z-index: 100;
-            transition: right 0.3s ease;
-            overflow-y: auto;
-        }
-
-        .detail-panel.open {
-            right: 0;
-        }
-
-        .detail-header {
-            padding: 20px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .detail-title {
-            font-size: 18px;
-            font-weight: 600;
-        }
-
-        .detail-close {
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            font-size: 24px;
-            cursor: pointer;
-            padding: 4px;
-        }
-
-        .detail-content {
-            padding: 20px;
-        }
-
-        .detail-section {
-            margin-bottom: 24px;
-        }
-
-        .detail-section-title {
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 12px;
-        }
-
-        .detail-field {
-            margin-bottom: 12px;
-        }
-
-        .detail-label {
-            font-size: 12px;
-            color: var(--text-secondary);
-            margin-bottom: 4px;
-        }
-
-        .detail-value {
-            font-size: 14px;
-            line-height: 1.5;
-        }
-
-        .detail-value ul {
-            margin-left: 20px;
-            color: var(--text-secondary);
-        }
-
-        /* Tasks List */
-        .tasks-list {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            overflow: hidden;
-        }
-
-        .task-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px 16px;
-            border-bottom: 1px solid var(--border);
-            cursor: pointer;
-        }
-
-        .task-item:last-child {
-            border-bottom: none;
-        }
-
-        .task-item:hover {
-            background: var(--bg-tertiary);
-        }
-
-        .task-checkbox {
-            width: 18px;
-            height: 18px;
-            border: 2px solid var(--border);
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        .task-checkbox.checked {
-            background: var(--accent-green);
-            border-color: var(--accent-green);
-        }
-
-        .task-info {
-            flex: 1;
-        }
-
-        .task-title {
-            font-size: 14px;
-            margin-bottom: 2px;
-        }
-
-        .task-meta {
-            font-size: 12px;
-            color: var(--text-muted);
-            display: flex;
-            gap: 12px;
-        }
-
-        .task-priority {
-            font-size: 10px;
-            font-weight: 600;
-            padding: 2px 6px;
-            border-radius: 3px;
-            text-transform: uppercase;
-        }
-
-        .priority-high {
-            background: rgba(248, 81, 73, 0.15);
-            color: var(--accent-red);
-        }
-
-        .priority-medium {
-            background: rgba(210, 153, 34, 0.15);
-            color: var(--accent-yellow);
-        }
-
-        .priority-low {
-            background: rgba(139, 148, 158, 0.15);
-            color: var(--text-secondary);
-        }
-
-        .task-agent {
-            width: 24px;
-            height: 24px;
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
         /* Activity Feed */
         .activity-feed {
             background: var(--bg-card);
@@ -660,14 +487,264 @@
             line-height: 1.4;
         }
 
-        .activity-text strong {
-            color: var(--accent-blue);
-        }
-
         .activity-time {
             font-size: 11px;
             color: var(--text-muted);
             margin-top: 4px;
+        }
+
+        /* Detail Panel */
+        .detail-panel {
+            position: fixed;
+            top: 0;
+            right: -650px;
+            width: 650px;
+            height: 100vh;
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--border);
+            z-index: 100;
+            transition: right 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .detail-panel.open {
+            right: 0;
+        }
+
+        .detail-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .detail-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .detail-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 24px;
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .detail-close:hover {
+            color: var(--text-primary);
+        }
+
+        .detail-content {
+            padding: 20px;
+        }
+
+        .detail-section {
+            margin-bottom: 24px;
+        }
+
+        .detail-section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .detail-section-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .detail-field {
+            margin-bottom: 12px;
+        }
+
+        .detail-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        .detail-value {
+            font-size: 14px;
+            line-height: 1.5;
+            color: var(--text-primary);
+        }
+
+        .detail-value ul {
+            margin-left: 20px;
+            color: var(--text-secondary);
+        }
+
+        /* Tasks List */
+        .tasks-list {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .task-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+        }
+
+        .task-item:last-child {
+            border-bottom: none;
+        }
+
+        .task-item:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .task-checkbox {
+            width: 18px;
+            height: 18px;
+            border: 2px solid var(--border);
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: var(--accent-green);
+            flex-shrink: 0;
+            transition: all 0.15s;
+        }
+
+        .task-checkbox:hover {
+            border-color: var(--accent-blue);
+        }
+
+        .task-checkbox.checked {
+            background: var(--accent-green);
+            border-color: var(--accent-green);
+            color: white;
+        }
+
+        .task-info {
+            flex: 1;
+        }
+
+        .task-title {
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+
+        .task-meta {
+            font-size: 12px;
+            color: var(--text-muted);
+            display: flex;
+            gap: 12px;
+        }
+
+        .task-priority {
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 3px;
+            text-transform: uppercase;
+        }
+
+        .priority-high { background: rgba(248, 81, 73, 0.15); color: var(--accent-red); }
+        .priority-medium { background: rgba(210, 153, 34, 0.15); color: var(--accent-yellow); }
+        .priority-low { background: rgba(139, 148, 158, 0.15); color: var(--text-secondary); }
+
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 500px;
+            max-height: 90vh;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            z-index: 101;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+            overflow-y: auto;
+        }
+
+        .modal.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-footer {
+            padding: 16px 20px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .form-input, .form-textarea, .form-select {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-input:focus, .form-textarea:focus, .form-select:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
         }
 
         /* Modal Overlay */
@@ -691,18 +768,13 @@
 
         /* Responsive */
         @media (max-width: 1200px) {
-            .stats-row {
-                grid-template-columns: repeat(2, 1fr);
-            }
+            .stats-row { grid-template-columns: repeat(2, 1fr); }
         }
 
         @media (max-width: 900px) {
-            .app {
-                grid-template-columns: 1fr;
-            }
-            .sidebar {
-                display: none;
-            }
+            .app { grid-template-columns: 1fr; }
+            .sidebar { display: none; }
+            .detail-panel { width: 100%; right: -100%; }
         }
     </style>
 </head>
@@ -717,7 +789,7 @@
             <input type="text" class="search-box" placeholder="Search projects, tasks, agents...">
             <div class="header-actions">
                 <button class="btn">🔔 <span class="nav-item-badge">3</span></button>
-                <button class="btn btn-primary" onclick="openNewProjectModal()">+ New Project</button>
+                <button class="btn btn-primary" onclick="App.openNewProjectModal()">+ New Project</button>
             </div>
         </header>
 
@@ -732,7 +804,6 @@
                 <div class="nav-item">
                     <span class="nav-item-icon">◫</span>
                     All Tasks
-                    <span class="nav-item-badge">12</span>
                 </div>
                 <div class="nav-item">
                     <span class="nav-item-icon">⚡</span>
@@ -762,21 +833,9 @@
 
             <div class="sidebar-section">
                 <div class="sidebar-title">Projects</div>
-                <div class="nav-item">
+                <div class="nav-item" onclick="App.renderProjects()">
                     <span class="nav-item-icon">▸</span>
-                    Cost Monitor
-                </div>
-                <div class="nav-item">
-                    <span class="nav-item-icon">▸</span>
-                    Atlas Dashboard
-                </div>
-                <div class="nav-item">
-                    <span class="nav-item-icon">▸</span>
-                    Voice Interface
-                </div>
-                <div class="nav-item" style="color: var(--accent-blue);">
-                    <span class="nav-item-icon">+</span>
-                    Add Project
+                    All Projects
                 </div>
             </div>
         </aside>
@@ -787,197 +846,43 @@
             <div class="stats-row">
                 <div class="stat-card">
                     <div class="stat-label">Active Projects</div>
-                    <div class="stat-value blue">3</div>
-                    <div class="stat-change">1 completed this week</div>
+                    <div class="stat-value blue" id="stat-projects">0</div>
+                    <div class="stat-change">projects in progress</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-label">Open Tasks</div>
-                    <div class="stat-value yellow">12</div>
-                    <div class="stat-change">4 due today</div>
+                    <div class="stat-value yellow" id="stat-tasks">0</div>
+                    <div class="stat-change">tasks remaining</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-label">Active Agents</div>
-                    <div class="stat-value green">4</div>
-                    <div class="stat-change">0 idle</div>
+                    <div class="stat-value green" id="stat-agents">0</div>
+                    <div class="stat-change">agents working</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-label">Issues</div>
-                    <div class="stat-value red">2</div>
-                    <div class="stat-change">1 new since last visit</div>
+                    <div class="stat-value red" id="stat-issues">0</div>
+                    <div class="stat-change">unresolved</div>
                 </div>
             </div>
 
             <!-- Projects Section -->
             <div class="section-header">
                 <h2 class="section-title">Projects</h2>
-                <button class="btn">View All →</button>
+                <button class="btn" onclick="App.openNewProjectModal()">+ Add Project</button>
             </div>
 
-            <div class="projects-grid">
-                <!-- Project Card 1 -->
-                <div class="project-card" onclick="openProjectDetail('cost-monitor')">
-                    <div class="project-header">
-                        <div>
-                            <div class="project-name">Cost Monitor</div>
-                            <div class="project-desc">Track AI usage costs across all agents and sessions</div>
-                        </div>
-                        <span class="project-status status-in_progress">In Progress</span>
-                    </div>
-                    <div class="project-progress">
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width: 65%"></div>
-                        </div>
-                        <div class="progress-text">
-                            <span>65% complete</span>
-                            <span>Due Feb 28</span>
-                        </div>
-                    </div>
-                    <div class="project-meta">
-                        <div class="project-meta-item">📋 8 tasks</div>
-                        <div class="project-meta-item">🤖 2 agents</div>
-                        <div class="project-meta-item">⚠️ 1 issue</div>
-                    </div>
-                </div>
-
-                <!-- Project Card 2 -->
-                <div class="project-card">
-                    <div class="project-header">
-                        <div>
-                            <div class="project-name">Atlas Dashboard</div>
-                            <div class="project-desc">Mission control interface for managing AI operations</div>
-                        </div>
-                        <span class="project-status status-in_progress">In Progress</span>
-                    </div>
-                    <div class="project-progress">
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width: 40%"></div>
-                        </div>
-                        <div class="progress-text">
-                            <span>40% complete</span>
-                            <span>Due Mar 15</span>
-                        </div>
-                    </div>
-                    <div class="project-meta">
-                        <div class="project-meta-item">📋 15 tasks</div>
-                        <div class="project-meta-item">🤖 3 agents</div>
-                        <div class="project-meta-item">✓ 0 issues</div>
-                    </div>
-                </div>
-
-                <!-- Project Card 3 -->
-                <div class="project-card">
-                    <div class="project-header">
-                        <div>
-                            <div class="project-name">Voice Interface</div>
-                            <div class="project-desc">Natural language voice commands for agent control</div>
-                        </div>
-                        <span class="project-status status-not_started">Not Started</span>
-                    </div>
-                    <div class="project-progress">
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width: 0%"></div>
-                        </div>
-                        <div class="progress-text">
-                            <span>Not started</span>
-                            <span>TBD</span>
-                        </div>
-                    </div>
-                    <div class="project-meta">
-                        <div class="project-meta-item">📋 0 tasks</div>
-                        <div class="project-meta-item">🤖 0 agents</div>
-                    </div>
-                </div>
+            <div class="projects-grid" id="projects-grid">
+                <!-- Projects rendered by JS -->
             </div>
 
             <!-- Agents Section -->
             <div class="section-header">
                 <h2 class="section-title">Active Agents</h2>
-                <button class="btn">Manage Agents →</button>
             </div>
 
-            <div class="agents-grid">
-                <!-- Agent Card 1 -->
-                <div class="agent-card">
-                    <div class="agent-header">
-                        <div class="agent-avatar coding">CW</div>
-                        <div class="agent-info">
-                            <div class="agent-name">CodeWright</div>
-                            <div class="agent-role">Coding Agent</div>
-                        </div>
-                        <div class="agent-status active" title="Active"></div>
-                    </div>
-                    <div class="agent-current-task">
-                        <div class="agent-task-label">Currently Working On</div>
-                        <div>Building dashboard UI components</div>
-                    </div>
-                    <div class="agent-stats">
-                        <span class="agent-stat"><strong>12</strong> tasks done</span>
-                        <span class="agent-stat"><strong>2</strong> errors</span>
-                    </div>
-                    <div class="agent-issues">
-                        <span class="issue-badge">⚠️ 1 issue: API rate limit</span>
-                    </div>
-                </div>
-
-                <!-- Agent Card 2 -->
-                <div class="agent-card">
-                    <div class="agent-header">
-                        <div class="agent-avatar research">RS</div>
-                        <div class="agent-info">
-                            <div class="agent-name">Researcher</div>
-                            <div class="agent-role">Research Agent</div>
-                        </div>
-                        <div class="agent-status active" title="Active"></div>
-                    </div>
-                    <div class="agent-current-task">
-                        <div class="agent-task-label">Currently Working On</div>
-                        <div>Gathering requirements for Voice Interface</div>
-                    </div>
-                    <div class="agent-stats">
-                        <span class="agent-stat"><strong>5</strong> tasks done</span>
-                        <span class="agent-stat"><strong>0</strong> errors</span>
-                    </div>
-                </div>
-
-                <!-- Agent Card 3 -->
-                <div class="agent-card">
-                    <div class="agent-header">
-                        <div class="agent-avatar testing">QA</div>
-                        <div class="agent-info">
-                            <div class="agent-name">QA Tester</div>
-                            <div class="agent-role">Testing Agent</div>
-                        </div>
-                        <div class="agent-status idle" title="Idle"></div>
-                    </div>
-                    <div class="agent-current-task">
-                        <div class="agent-task-label">Currently Working On</div>
-                        <div style="color: var(--text-muted);">No active task</div>
-                    </div>
-                    <div class="agent-stats">
-                        <span class="agent-stat"><strong>8</strong> tasks done</span>
-                        <span class="agent-stat"><strong>0</strong> errors</span>
-                    </div>
-                </div>
-
-                <!-- Agent Card 4 -->
-                <div class="agent-card">
-                    <div class="agent-header">
-                        <div class="agent-avatar coding">AT</div>
-                        <div class="agent-info">
-                            <div class="agent-name">ATLAS</div>
-                            <div class="agent-role">Orchestration Agent</div>
-                        </div>
-                        <div class="agent-status active" title="Active"></div>
-                    </div>
-                    <div class="agent-current-task">
-                        <div class="agent-task-label">Currently Working On</div>
-                        <div>Coordinating Cost Monitor project</div>
-                    </div>
-                    <div class="agent-stats">
-                        <span class="agent-stat"><strong>25</strong> tasks coordinated</span>
-                        <span class="agent-stat"><strong>0</strong> errors</span>
-                    </div>
-                </div>
+            <div class="agents-grid" id="agents-grid">
+                <!-- Agents rendered by JS -->
             </div>
 
             <!-- Recent Activity -->
@@ -985,148 +890,139 @@
                 <h2 class="section-title">Recent Activity</h2>
             </div>
 
-            <div class="activity-feed">
-                <div class="activity-item">
-                    <div class="activity-icon code">💻</div>
-                    <div class="activity-content">
-                        <div class="activity-text"><strong>CodeWright</strong> pushed 3 commits to <strong>cost-monitor/ui</strong></div>
-                        <div class="activity-time">15 minutes ago</div>
-                    </div>
-                </div>
-                <div class="activity-item">
-                    <div class="activity-icon error">⚠️</div>
-                    <div class="activity-content">
-                        <div class="activity-text"><strong>CodeWright</strong> encountered an API rate limit issue</div>
-                        <div class="activity-time">32 minutes ago</div>
-                    </div>
-                </div>
-                <div class="activity-item">
-                    <div class="activity-icon complete">✓</div>
-                    <div class="activity-content">
-                        <div class="activity-text"><strong>Researcher</strong> completed task: "Analyze dashboard UX patterns"</div>
-                        <div class="activity-time">1 hour ago</div>
-                    </div>
-                </div>
-                <div class="activity-item">
-                    <div class="activity-icon code">📝</div>
-                    <div class="activity-content">
-                        <div class="activity-text"><strong>ATLAS</strong> created 5 new tasks for <strong>Cost Monitor</strong></div>
-                        <div class="activity-time">2 hours ago</div>
-                    </div>
-                </div>
+            <div class="activity-feed" id="activity-feed">
+                <!-- Activity rendered by JS -->
             </div>
         </main>
     </div>
 
+    <!-- Modal Overlay -->
+    <div class="modal-overlay" id="modalOverlay"></div>
+
     <!-- Detail Panel -->
-    <div class="modal-overlay" id="modalOverlay" onclick="closeProjectDetail()"></div>
     <div class="detail-panel" id="detailPanel">
         <div class="detail-header">
-            <div class="detail-title">Cost Monitor</div>
-            <button class="detail-close" onclick="closeProjectDetail()">×</button>
+            <div class="detail-title" id="detail-title">Project Name</div>
+            <button class="detail-close" onclick="App.closeProjectDetail()">×</button>
         </div>
         <div class="detail-content">
             <div class="detail-section">
-                <div class="detail-section-title">Project Info</div>
-                <div class="detail-field">
-                    <div class="detail-label">Problem Statement</div>
-                    <div class="detail-value">Need a way to track and monitor AI costs across all agents and sessions to manage budget and optimize usage.</div>
-                </div>
-                <div class="detail-field">
-                    <div class="detail-label">Solution</div>
-                    <div class="detail-value">Build a real-time dashboard that aggregates cost data from all OpenClaw agents, displays usage metrics, and provides alerts for budget thresholds.</div>
-                </div>
-                <div class="detail-field">
-                    <div class="detail-label">Plan</div>
-                    <div class="detail-value">
-                        <ul>
-                            <li>Research existing cost monitoring solutions</li>
-                            <li>Design data model for cost tracking</li>
-                            <li>Build UI dashboard</li>
-                            <li>Integrate with OpenClaw cost APIs</li>
-                            <li>Add alerting system</li>
-                        </ul>
-                    </div>
+                <div class="detail-section-title">Problem Statement</div>
+                <div class="detail-value" id="detail-problem">-</div>
+            </div>
+
+            <div class="detail-section">
+                <div class="detail-section-title">Solution</div>
+                <div class="detail-value" id="detail-solution">-</div>
+            </div>
+
+            <div class="detail-section">
+                <div class="detail-section-title">Plan</div>
+                <div class="detail-value">
+                    <ul id="detail-plan"></ul>
                 </div>
             </div>
 
             <div class="detail-section">
-                <div class="detail-section-title">Tasks (8)</div>
-                <div class="tasks-list">
-                    <div class="task-item">
-                        <div class="task-checkbox checked"></div>
-                        <div class="task-info">
-                            <div class="task-title">Research dashboard UX patterns</div>
-                            <div class="task-meta">
-                                <span>Researcher</span>
-                                <span>Done</span>
-                            </div>
-                        </div>
-                        <span class="task-priority priority-high">High</span>
-                    </div>
-                    <div class="task-item">
-                        <div class="task-checkbox checked"></div>
-                        <div class="task-info">
-                            <div class="task-title">Design data model for cost tracking</div>
-                            <div class="task-meta">
-                                <span>ATLAS</span>
-                                <span>Done</span>
-                            </div>
-                        </div>
-                        <span class="task-priority priority-high">High</span>
-                    </div>
-                    <div class="task-item">
-                        <div class="task-checkbox"></div>
-                        <div class="task-info">
-                            <div class="task-title">Build dashboard UI components</div>
-                            <div class="task-meta">
-                                <span>CodeWright</span>
-                                <span>In Progress</span>
-                            </div>
-                        </div>
-                        <span class="task-priority priority-high">High</span>
-                    </div>
-                    <div class="task-item">
-                        <div class="task-checkbox"></div>
-                        <div class="task-info">
-                            <div class="task-title">Create cost aggregation service</div>
-                            <div class="task-meta">
-                                <span>CodeWright</span>
-                                <span>Pending</span>
-                            </div>
-                        </div>
-                        <span class="task-priority priority-medium">Medium</span>
-                    </div>
-                    <div class="task-item">
-                        <div class="task-checkbox"></div>
-                        <div class="task-info">
-                            <div class="task-title">Integrate with OpenClaw APIs</div>
-                            <div class="task-meta">
-                                <span>Unassigned</span>
-                                <span>Pending</span>
-                            </div>
-                        </div>
-                        <span class="task-priority priority-medium">Medium</span>
-                    </div>
+                <div class="detail-section-header">
+                    <div class="detail-section-title" id="detail-task-count">Tasks</div>
+                    <button class="btn btn-sm" onclick="App.openNewTaskModal()">+ Add Task</button>
+                </div>
+                <div class="tasks-list" id="detail-tasks">
+                    <!-- Tasks rendered by JS -->
                 </div>
             </div>
         </div>
     </div>
 
-    <script>
-        function openProjectDetail(projectId) {
-            document.getElementById('detailPanel').classList.add('open');
-            document.getElementById('modalOverlay').classList.add('open');
-        }
+    <!-- New Project Modal -->
+    <div class="modal" id="newProjectModal">
+        <div class="modal-header">
+            <div class="modal-title">Create New Project</div>
+            <button class="detail-close" onclick="App.closeNewProjectModal()">×</button>
+        </div>
+        <form id="newProjectForm">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Project Name *</label>
+                    <input type="text" class="form-input" name="name" required placeholder="e.g., Cost Monitor">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <input type="text" class="form-input" name="description" placeholder="Brief description">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Problem Statement</label>
+                    <textarea class="form-textarea" name="problemStatement" placeholder="What problem does this project solve?"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Solution</label>
+                    <textarea class="form-textarea" name="solution" placeholder="How will this be solved?"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Target End Date</label>
+                        <input type="date" class="form-input" name="targetEndDate">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Owner</label>
+                        <input type="text" class="form-input" name="owner" placeholder="Agent or person">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn" onclick="App.closeNewProjectModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Create Project</button>
+            </div>
+        </form>
+    </div>
 
-        function closeProjectDetail() {
-            document.getElementById('detailPanel').classList.remove('open');
-            document.getElementById('modalOverlay').classList.remove('open');
-        }
+    <!-- New Task Modal -->
+    <div class="modal" id="newTaskModal">
+        <div class="modal-header">
+            <div class="modal-title">Add New Task</div>
+            <button class="detail-close" onclick="App.closeNewTaskModal()">×</button>
+        </div>
+        <form id="newTaskForm">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Task Title *</label>
+                    <input type="text" class="form-input" name="title" required placeholder="What needs to be done?">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-textarea" name="description" placeholder="Task details"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Priority</label>
+                        <select class="form-select" name="priority">
+                            <option value="low">Low</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="high">High</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Due Date</label>
+                        <input type="date" class="form-input" name="dueDate">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Assignee</label>
+                    <select class="form-select" name="assignee" id="taskAssignee">
+                        <option value="">Unassigned</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn" onclick="App.closeNewTaskModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Add Task</button>
+            </div>
+        </form>
+    </div>
 
-        function openNewProjectModal() {
-            alert('New Project Modal would open here');
-        }
-    </script>
+    <!-- Scripts -->
+    <script src="assets/data.js"></script>
+    <script src="assets/app.js"></script>
 </body>
 </html>
