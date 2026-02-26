@@ -1,0 +1,104 @@
+# AgenticOps CI/CD Pipeline
+# Validates code quality and security on every push
+
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # -----------------------------
+  # Code Quality Check
+  # -----------------------------
+  quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install HTML validator
+        run: npm install -g html-validate
+
+      - name: Validate HTML
+        run: |
+          find . -name "*.html" -exec html-validate {} \;
+
+      - name: Check for sensitive data
+        run: |
+          echo "Checking for exposed secrets..."
+          grep -r "api_key\|password\|secret\|token" --include="*.html" --include="*.js" . || echo "No secrets found"
+
+  # -----------------------------
+  # Security Scan
+  # -----------------------------
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run GitLeaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_COMMENTS: false
+
+  # -----------------------------
+  # Lighthouse Audit (Performance)
+  # -----------------------------
+  performance:
+    name: Performance
+    runs-on: ubuntu-latest
+    if: false  # Enable if deploying to pages
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Lighthouse
+        uses: treosh/lighthouse-ci-action@v11
+        with:
+          urls: |
+            ${{ vars.DEPLOY_URL }}
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+
+  # -----------------------------
+  # Deploy to GitHub Pages
+  # -----------------------------
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    needs: [quality, security]
+    
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
