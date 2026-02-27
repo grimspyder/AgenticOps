@@ -11,6 +11,7 @@ const DataStore = {
     projects: [],
     agents: [],
     activities: [],
+    taskHierarchy: [],  // Task assignment chain
     
     // ===================
     // Initialization
@@ -20,6 +21,10 @@ const DataStore = {
         this.load();
         if (this.projects.length === 0) {
             this.seedDemoData();
+        }
+        // Ensure taskHierarchy exists
+        if (!this.taskHierarchy) {
+            this.taskHierarchy = [];
         }
     },
     
@@ -32,6 +37,7 @@ const DataStore = {
             projects: this.projects,
             agents: this.agents,
             activities: this.activities,
+            taskHierarchy: this.taskHierarchy,
             lastUpdated: new Date().toISOString()
         }));
     },
@@ -43,6 +49,7 @@ const DataStore = {
             this.projects = parsed.projects || [];
             this.agents = parsed.agents || [];
             this.activities = parsed.activities || [];
+            this.taskHierarchy = parsed.taskHierarchy || [];
         }
     },
     
@@ -323,6 +330,263 @@ const DataStore = {
         
         const completedTasks = project.tasks.filter(t => t.status === 'done').length;
         project.progress = Math.round((completedTasks / project.tasks.length) * 100);
+    },
+    
+    // ===================
+    // Task Assignment Hierarchy
+    // ===================
+    
+    /**
+     * Assign a task to an agent with tracking of who assigned it
+     * @param {string} taskId - The task ID
+     * @param {string} assignedTo - Agent name to assign to
+     * @param {string} assignedBy - Who made the assignment (Human, ATLAS, or agent name)
+     * @param {string} parentTaskId - Optional parent task ID for hierarchy
+     */
+    assignTask(taskId, assignedTo, assignedBy, parentTaskId = null) {
+        // Find the task across all projects
+        let task = null;
+        let projectId = null;
+        
+        for (const project of this.projects) {
+            const found = project.tasks.find(t => t.id === taskId);
+            if (found) {
+                task = found;
+                projectId = project.id;
+                break;
+            }
+        }
+        
+        if (!task) return null;
+        
+        // Add assignment tracking to task
+        const assignment = {
+            id: this.generateId(),
+            taskId: taskId,
+            assignedTo: assignedTo,
+            assignedBy: assignedBy,
+            parentTaskId: parentTaskId,
+            status: 'assigned',
+            assignedAt: new Date().toISOString(),
+            statusHistory: [
+                {
+                    status: 'pending',
+                    changedAt: task.createdAt,
+                    changedBy: 'system',
+                    note: 'Task created'
+                },
+                {
+                    status: 'assigned',
+                    changedAt: new Date().toISOString(),
+                    changedBy: assignedBy,
+                    note: `Assigned to ${assignedTo}`
+                }
+            ],
+            responses: [],
+            currentAction: '',
+            progress: 0
+        };
+        
+        // Update task with assignment info
+        task.assignee = assignedTo;
+        task.assignedBy = assignedBy;
+        task.parentTaskId = parentTaskId;
+        task.assignment = assignment;
+        task.status = 'assigned';
+        
+        // Add to hierarchy
+        this.taskHierarchy.push(assignment);
+        
+        // Update agent status
+        const agent = this.agents.find(a => a.name === assignedTo);
+        if (agent) {
+            this.assignTaskToAgent(agent.id, taskId, task.title);
+        }
+        
+        this.addActivity('task', 'assigned', `${assignedBy} assigned "${task.title}" to ${assignedTo}`);
+        this.save();
+        
+        return assignment;
+    },
+    
+    /**
+     * Agent reports progress on their task
+     */
+    reportProgress(taskId, agentName, progress, message, action = '') {
+        // Find task
+        let task = null;
+        for (const project of this.projects) {
+            const found = project.tasks.find(t => t.id === taskId);
+            if (found) {
+                task = found;
+                break;
+            }
+        }
+        
+        if (!task || !task.assignment) return null;
+        
+        // Add response
+        const response = {
+            id: this.generateId(),
+            agentName: agentName,
+            message: message,
+            progress: progress,
+            action: action,
+            timestamp: new Date().toISOString()
+        };
+        
+        task.assignment.responses.push(response);
+        task.assignment.currentAction = action || message;
+        task.assignment.progress = progress;
+        
+        // Update status history if progress reached certain thresholds
+        if (progress >= 100) {
+            task.assignment.statusHistory.push({
+                status: 'completed',
+                changedAt: new Date().toISOString(),
+                changedBy: agentName,
+                note: message || 'Task completed'
+            });
+            task.status = 'done';
+            task.assignment.status = 'completed';
+        } else if (progress > 0 && task.status === 'assigned') {
+            task.status = 'in_progress';
+            task.assignment.status = 'in_progress';
+        }
+        
+        // Log agent activity
+        const agent = this.agents.find(a => a.name === agentName);
+        if (agent) {
+            this.logAgentActivity(agent.id, action || message, `Progress: ${progress}%`);
+        }
+        
+        this.addActivity('task', 'progress', `${agentName} reported ${progress}% progress on "${task.title}": ${message}`);
+        this.save();
+        
+        return response;
+    },
+    
+    /**
+     * Get task hierarchy view - shows all assignments in chain
+     */
+    getTaskHierarchy() {
+        return this.taskHierarchy.map(entry => {
+            let task = null;
+            let projectName = '';
+            
+            for (const project of this.projects) {
+                const found = project.tasks.find(t => t.id === entry.taskId);
+                if (found) {
+                    task = found;
+                    projectName = project.name;
+                    break;
+                }
+            }
+            
+            return {
+                ...entry,
+                taskTitle: task?.title || 'Unknown Task',
+                projectName: projectName
+            };
+        });
+    },
+    
+    /**
+     * Get tasks assigned to a specific agent
+     */
+    getTasksForAgent(agentName) {
+        const tasks = [];
+        for (const project of this.projects) {
+            for (const task of project.tasks) {
+                if (task.assignee === agentName) {
+                    tasks.push({
+                        ...task,
+                        projectName: project.name
+                    });
+                }
+            }
+        }
+        return tasks;
+    },
+    
+    /**
+     * Get tasks assigned by a specific agent/person
+     */
+    getTasksAssignedBy(assignedBy) {
+        const tasks = [];
+        for (const project of this.projects) {
+            for (const task of project.tasks) {
+                if (task.assignedBy === assignedBy) {
+                    tasks.push({
+                        ...task,
+                        projectName: project.name
+                    });
+                }
+            }
+        }
+        return tasks;
+    },
+    
+    /**
+     * Get sub-tasks (tasks assigned by this task's assignee)
+     */
+    getSubTasks(taskId) {
+        return this.taskHierarchy.filter(t => t.parentTaskId === taskId);
+    },
+    
+    /**
+     * Simulate agent working - for demo purposes
+     */
+    simulateAgentWork() {
+        const activeAgents = this.agents.filter(a => a.status === 'active' && a.currentTaskId);
+        
+        for (const agent of activeAgents) {
+            const taskId = agent.currentTaskId;
+            
+            // Find current progress
+            let currentProgress = 0;
+            for (const project of this.projects) {
+                const task = project.tasks.find(t => t.id === taskId);
+                if (task && task.assignment) {
+                    currentProgress = task.assignment.progress || 0;
+                    break;
+                }
+            }
+            
+            // Random progress increment (5-20%)
+            const increment = Math.floor(Math.random() * 16) + 5;
+            const newProgress = Math.min(100, currentProgress + increment);
+            
+            const actions = [
+                'Analyzing requirements...',
+                'Writing code...',
+                'Running tests...',
+                'Debugging...',
+                'Refactoring...',
+                'Reviewing documentation...',
+                'Building components...',
+                'Testing integration...',
+                'Optimizing performance...',
+                'Fixing edge cases...'
+            ];
+            
+            const randomAction = actions[Math.floor(Math.random() * actions.length)];
+            
+            const messages = [
+                'Making good progress!',
+                'Almost done with this section.',
+                'Found and fixed a tricky bug.',
+                'Code is coming together nicely.',
+                'Completed the main functionality.',
+                'Working on edge cases now.',
+                'Need to review some tests.',
+                'All tests passing so far.'
+            ];
+            
+            const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+            
+            this.reportProgress(taskId, agent.name, newProgress, randomMessage, randomAction);
+        }
     },
     
     // ===================
@@ -726,6 +990,7 @@ const DataStore = {
         this.projects = [];
         this.agents = [];
         this.activities = [];
+        this.taskHierarchy = [];
     }
 };
 

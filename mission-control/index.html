@@ -1013,6 +1013,324 @@
             background: var(--accent-blue);
             color: white;
         }
+
+        /* ===================
+           Task Assignment Section
+           =================== */
+        .task-assignment-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 16px;
+        }
+
+        .assignment-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .assignment-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .assignment-chain {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+        }
+
+        .chain-assigner {
+            color: var(--accent-purple);
+            font-weight: 500;
+        }
+
+        .chain-arrow {
+            color: var(--text-muted);
+        }
+
+        .chain-assignee {
+            color: var(--accent-cyan);
+            font-weight: 500;
+        }
+
+        .assignment-status {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+
+        .assignment-task {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .assignment-project {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .assignment-parent {
+            font-size: 11px;
+            color: var(--accent-yellow);
+            margin-bottom: 8px;
+        }
+
+        .assignment-progress {
+            margin: 12px 0;
+        }
+
+        .assignment-activity {
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+            padding: 10px;
+            margin: 12px 0;
+        }
+
+        .activity-current {
+            display: flex;
+            gap: 8px;
+            font-size: 13px;
+            margin-bottom: 6px;
+        }
+
+        .activity-label {
+            color: var(--text-muted);
+        }
+
+        .activity-action {
+            color: var(--accent-cyan);
+            font-weight: 500;
+        }
+
+        .activity-agent {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .assignment-timeline {
+            border-top: 1px solid var(--border);
+            padding-top: 12px;
+            margin-top: 12px;
+        }
+
+        .timeline-item {
+            display: flex;
+            gap: 8px;
+            font-size: 11px;
+            margin-bottom: 4px;
+        }
+
+        .timeline-status {
+            color: var(--accent-green);
+            font-weight: 500;
+        }
+
+        .timeline-note {
+            color: var(--text-muted);
+        }
+
+        .empty-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 40px 20px;
+            background: var(--bg-card);
+            border: 1px dashed var(--border);
+            border-radius: 8px;
+        }
+
+        .empty-icon {
+            font-size: 32px;
+            margin-bottom: 12px;
+        }
+
+        .empty-text {
+            font-size: 15px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        .empty-hint {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        /* ===================
+           Live Tracking Section
+           =================== */
+        .live-tracking-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .live-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--accent-green);
+            font-size: 12px;
+            font-weight: 600;
+            padding: 4px 10px;
+            background: rgba(63, 185, 80, 0.15);
+            border-radius: 12px;
+        }
+
+        .live-indicator::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            background: var(--accent-green);
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .live-agent-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .live-agent-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .live-agent-info {
+            flex: 1;
+        }
+
+        .live-agent-name {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .live-agent-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--accent-green);
+        }
+
+        .pulse-indicator {
+            width: 8px;
+            height: 8px;
+            background: var(--accent-green);
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+
+        .live-current-task {
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+
+        .task-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .task-title {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .task-progress-bar {
+            height: 4px;
+            background: var(--bg-primary);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .task-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-green), var(--accent-cyan));
+            border-radius: 2px;
+            transition: width 0.5s ease;
+        }
+
+        .task-progress-text {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .live-action {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--accent-cyan);
+            padding: 8px;
+            background: rgba(57, 197, 207, 0.1);
+            border-radius: 6px;
+            margin-bottom: 12px;
+        }
+
+        .action-icon {
+            font-size: 14px;
+        }
+
+        .live-log {
+            border-top: 1px solid var(--border);
+            padding-top: 12px;
+        }
+
+        .log-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .log-message {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        .log-time {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        /* ===================
+           Form Info
+           =================== */
+        .form-info {
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+            padding: 12px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 12px;
+        }
+
+        .form-info p {
+            margin: 0;
+        }
     </style>
 </head>
 <body>
@@ -1129,6 +1447,26 @@
 
             <div class="activity-feed" id="activity-feed">
                 <!-- Activity rendered by JS -->
+            </div>
+
+            <!-- Task Assignment Hierarchy -->
+            <div class="section-header" style="margin-top: 32px;">
+                <h2 class="section-title">Task Assignments</h2>
+                <button class="btn btn-primary" onclick="App.openTaskAssignmentModal()">+ Assign Task</button>
+            </div>
+
+            <div class="task-assignment-grid" id="task-assignment-grid">
+                <!-- Task assignments rendered by JS -->
+            </div>
+
+            <!-- Live Agent Tracking -->
+            <div class="section-header" style="margin-top: 32px;">
+                <h2 class="section-title">Live Agent Tracking</h2>
+                <span class="live-indicator">● Live</span>
+            </div>
+
+            <div class="live-tracking-grid" id="live-tracking-grid">
+                <!-- Live tracking rendered by JS -->
             </div>
         </main>
     </div>
@@ -1375,6 +1713,43 @@
             <div class="modal-footer">
                 <button type="button" class="btn" onclick="App.closeReplyModal()">Cancel</button>
                 <button type="submit" class="btn btn-primary">Reply</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Task Assignment Modal -->
+    <div class="modal" id="taskAssignmentModal">
+        <div class="modal-header">
+            <div class="modal-title">Assign Task to Agent</div>
+            <button class="detail-close" onclick="App.closeTaskAssignmentModal()">×</button>
+        </div>
+        <form id="taskAssignmentForm">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Select Task *</label>
+                    <select class="form-select" id="assignTaskSelect" required>
+                        <option value="">Choose a task...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Assign To (Agent) *</label>
+                    <select class="form-select" id="assignAgentSelect" required>
+                        <option value="">Select agent...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Assigned By *</label>
+                    <select class="form-select" id="assignBySelect" required>
+                        <option value="">Who is assigning...</option>
+                    </select>
+                </div>
+                <div class="form-info">
+                    <p>This creates a task assignment chain: Human → ATLAS → Agent → Sub-agent hierarchy.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn" onclick="App.closeTaskAssignmentModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Assign Task</button>
             </div>
         </form>
     </div>

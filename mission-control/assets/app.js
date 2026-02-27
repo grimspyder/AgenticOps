@@ -14,6 +14,20 @@ const App = {
     init() {
         this.render();
         this.bindEvents();
+        this.startLiveTracking();
+    },
+    
+    // ===================
+    // Live Tracking
+    // ===================
+    
+    startLiveTracking() {
+        // Update every 5 seconds for demo
+        setInterval(() => {
+            DataStore.simulateAgentWork();
+            this.render();
+            this.renderTaskAssignment();
+        }, 5000);
     },
     
     // ===================
@@ -25,6 +39,8 @@ const App = {
         this.renderProjects();
         this.renderAgents();
         this.renderActivity();
+        this.renderTaskAssignment();
+        this.renderLiveTracking();
     },
     
     renderStats() {
@@ -133,6 +149,144 @@ const App = {
         if (activities.length === 0) {
             container.innerHTML = '<div class="activity-item"><div class="activity-content"><div class="activity-text" style="color: var(--text-muted)">No recent activity</div></div></div>';
         }
+    },
+    
+    // ===================
+    // Task Assignment View
+    // ===================
+    
+    renderTaskAssignment() {
+        const container = document.getElementById('task-assignment-grid');
+        const hierarchy = DataStore.getTaskHierarchy();
+        
+        if (hierarchy.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">📋</div>
+                    <div class="empty-text">No tasks assigned yet</div>
+                    <div class="empty-hint">Assign tasks to agents to see the hierarchy here</div>
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = hierarchy.map(entry => {
+            const statusClass = `status-${entry.status}`;
+            const progress = entry.progress || 0;
+            
+            // Get latest response
+            const latestResponse = entry.responses && entry.responses.length > 0 
+                ? entry.responses[entry.responses.length - 1] 
+                : null;
+            
+            return `
+                <div class="assignment-card">
+                    <div class="assignment-header">
+                        <div class="assignment-chain">
+                            <span class="chain-assigner">${this.escapeHtml(entry.assignedBy)}</span>
+                            <span class="chain-arrow">→</span>
+                            <span class="chain-assignee">${this.escapeHtml(entry.assignedTo)}</span>
+                        </div>
+                        <span class="assignment-status ${statusClass}">${this.formatStatus(entry.status)}</span>
+                    </div>
+                    <div class="assignment-task">${this.escapeHtml(entry.taskTitle)}</div>
+                    <div class="assignment-project">📁 ${this.escapeHtml(entry.projectName)}</div>
+                    ${entry.parentTaskId ? `<div class="assignment-parent">🔗 Sub-task of parent</div>` : ''}
+                    <div class="assignment-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${progress}%"></div>
+                        </div>
+                        <div class="progress-text">
+                            <span>${progress}%</span>
+                            <span>${this.formatTime(entry.assignedAt)}</span>
+                        </div>
+                    </div>
+                    ${latestResponse ? `
+                        <div class="assignment-activity">
+                            <div class="activity-current">
+                                <span class="activity-label">Current:</span>
+                                <span class="activity-action">${this.escapeHtml(latestResponse.action || latestResponse.message)}</span>
+                            </div>
+                            <div class="activity-agent">👤 ${this.escapeHtml(latestResponse.agentName)}</div>
+                        </div>
+                    ` : ''}
+                    <div class="assignment-timeline">
+                        ${(entry.statusHistory || []).slice(-2).map(h => `
+                            <div class="timeline-item">
+                                <span class="timeline-status">${this.formatStatus(h.status)}</span>
+                                <span class="timeline-note">${this.escapeHtml(h.note || '')}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    },
+    
+    // ===================
+    // Live Agent View
+    // ===================
+    
+    renderLiveTracking() {
+        const container = document.getElementById('live-tracking-grid');
+        const agents = DataStore.agents.filter(a => a.status === 'active');
+        
+        if (agents.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">💤</div>
+                    <div class="empty-text">No active agents</div>
+                    <div class="empty-hint">Assign tasks to agents to see them working</div>
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = agents.map(agent => {
+            const tasks = DataStore.getTasksForAgent(agent.name);
+            const currentTask = tasks.find(t => t.id === agent.currentTaskId);
+            
+            // Get latest log
+            const latestLog = agent.agentActivity?.logs?.slice(-1)[0];
+            
+            return `
+                <div class="live-agent-card">
+                    <div class="live-agent-header">
+                        <div class="agent-avatar ${agent.role}">${agent.name.split(' ').map(n => n[0]).join('')}</div>
+                        <div class="live-agent-info">
+                            <div class="live-agent-name">${this.escapeHtml(agent.name)}</div>
+                            <div class="live-agent-status">
+                                <span class="pulse-indicator"></span>
+                                <span>Active</span>
+                            </div>
+                        </div>
+                    </div>
+                    ${currentTask ? `
+                        <div class="live-current-task">
+                            <div class="task-label">Working on:</div>
+                            <div class="task-title">${this.escapeHtml(currentTask.title)}</div>
+                            <div class="task-progress-bar">
+                                <div class="task-progress-fill" style="width: ${currentTask.assignment?.progress || 0}%"></div>
+                            </div>
+                            <div class="task-progress-text">${currentTask.assignment?.progress || 0}% complete</div>
+                        </div>
+                        ${currentTask.assignment?.currentAction ? `
+                            <div class="live-action">
+                                <span class="action-icon">⚡</span>
+                                <span>${this.escapeHtml(currentTask.assignment.currentAction)}</span>
+                            </div>
+                        ` : ''}
+                    ` : ''}
+                    ${latestLog ? `
+                        <div class="live-log">
+                            <div class="log-label">Latest:</div>
+                            <div class="log-message">${this.escapeHtml(latestLog.details || latestLog.action)}</div>
+                            <div class="log-time">${this.formatTime(latestLog.timestamp)}</div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }).join('');
     },
     
     // ===================
@@ -371,6 +525,84 @@ const App = {
     },
     
     // ===================
+    // Task Assignment Modal
+    // ===================
+    
+    openTaskAssignmentModal(taskId = null, taskTitle = null) {
+        const modal = document.getElementById('taskAssignmentModal');
+        const overlay = document.getElementById('modalOverlay');
+        
+        // Get all unassigned tasks
+        const unassignedTasks = [];
+        for (const project of DataStore.projects) {
+            for (const task of project.tasks) {
+                if (!task.assignee || task.status === 'pending') {
+                    unassignedTasks.push({
+                        id: task.id,
+                        title: task.title,
+                        projectName: project.name
+                    });
+                }
+            }
+        }
+        
+        // Populate task dropdown
+        const taskSelect = document.getElementById('assignTaskSelect');
+        taskSelect.innerHTML = unassignedTasks.map(t => 
+            `<option value="${t.id}">${this.escapeHtml(t.title)} (${this.escapeHtml(t.projectName)})</option>`
+        ).join('');
+        
+        // Pre-select if provided
+        if (taskId) {
+            taskSelect.value = taskId;
+        }
+        
+        // Populate assignee dropdown
+        const assigneeSelect = document.getElementById('assignAgentSelect');
+        assigneeSelect.innerHTML = DataStore.agents.map(a => 
+            `<option value="${a.name}">${a.name} (${this.formatRole(a.role)})</option>`
+        ).join('');
+        
+        // Populate assigned by dropdown (includes Human and ATLAS)
+        const assignedBySelect = document.getElementById('assignBySelect');
+        assignedBySelect.innerHTML = `
+            <option value="Human">👤 Human (Grim)</option>
+            <option value="ATLAS">🤖 ATLAS</option>
+            ${DataStore.agents.map(a => `<option value="${a.name}">${a.name}</option>`).join('')}
+        `;
+        
+        modal.classList.add('open');
+        overlay.classList.add('open');
+    },
+    
+    closeTaskAssignmentModal() {
+        document.getElementById('taskAssignmentModal').classList.remove('open');
+        document.getElementById('modalOverlay').classList.remove('open');
+    },
+    
+    saveTaskAssignment() {
+        const taskId = document.getElementById('assignTaskSelect').value;
+        const assignedTo = document.getElementById('assignAgentSelect').value;
+        const assignedBy = document.getElementById('assignBySelect').value;
+        
+        if (!taskId || !assignedTo) return;
+        
+        DataStore.assignTask(taskId, assignedTo, assignedBy);
+        
+        this.closeTaskAssignmentModal();
+        this.render();
+    },
+    
+    // ===================
+    // Quick Assign from Task Item
+    // ===================
+    
+    quickAssignTask(projectId, taskId) {
+        this.selectedProject = DataStore.getProject(projectId);
+        this.openTaskAssignmentModal(taskId);
+    },
+    
+    // ===================
     // Forms & Modals
     // ===================
     
@@ -571,6 +803,7 @@ const App = {
             this.closeNewNoteModal();
             this.closeNewMessageModal();
             this.closeReplyModal();
+            this.closeTaskAssignmentModal();
         });
         
         // Form submissions
@@ -592,6 +825,11 @@ const App = {
         document.getElementById('newMessageForm').addEventListener('submit', (e) => {
             e.preventDefault();
             this.saveNewMessage();
+        });
+        
+        document.getElementById('taskAssignmentForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.saveTaskAssignment();
         });
         
         document.getElementById('replyForm').addEventListener('submit', (e) => {
