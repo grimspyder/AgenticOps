@@ -3,7 +3,8 @@
  * Replaces localStorage DataStore with API calls
  */
 
-const API_BASE = 'http://localhost:3001/api';
+// Use environment variable or default to Tailscale IP for remote access
+const API_BASE = window.ENV?.API_URL || 'http://100.101.241.21:3001/api';
 
 const ApiClient = {
   // ===================

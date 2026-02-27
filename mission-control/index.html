@@ -1755,6 +1755,12 @@
     </div>
 
     <!-- Scripts -->
+    <!-- Set API URL - change IP for different environments -->
+    <script>
+      window.ENV = {
+        API_URL: 'http://100.101.241.21:3001/api'  // Tailscale IP for remote access
+      };
+    </script>
     <!-- API Client for backend communication -->
     <script src="assets/api-client.js"></script>
     <!-- Data layer using API (replaces localStorage DataStore) -->
