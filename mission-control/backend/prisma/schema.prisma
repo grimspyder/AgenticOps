@@ -1,0 +1,175 @@
+// Mission Control Dashboard - Prisma Schema
+// Matches the data model in assets/data.js
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// ===================
+// Project Model
+// ===================
+
+model Project {
+  id              String   @id @default(uuid())
+  name            String
+  description     String?
+  problemStatement String?
+  solution        String?
+  plan            String?  // JSON string
+  status          String   @default("not_started")
+  progress        Int      @default(0)
+  startDate       String?
+  targetEndDate   String?
+  owner           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  tasks           Task[]
+  notes           Note[]
+  messages        Message[]
+  activities      Activity[]
+}
+
+// ===================
+// Task Model
+// ===================
+
+model Task {
+  id            String   @id @default(uuid())
+  projectId     String
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title         String
+  description   String?
+  status        String   @default("pending")
+  priority      String   @default("medium")
+  assignee      String?
+  assignedBy    String?
+  parentTaskId  String?
+  dueDate       String?
+  dependencies  String?  // JSON string
+  subTasks      String?  // JSON string
+  
+  // Agent activity tracking
+  currentAction String?
+  agentLogs     String?  // JSON string
+  agentIssues   String?  // JSON string
+  
+  // Assignment (embedded from TaskAssignment)
+  assignment    String?  // JSON string
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Self-referential for subtasks
+  subtasks      Task[]   @relation("TaskSubtasks")
+  parentTask    Task?    @relation("TaskSubtasks", fields: [parentTaskId], references: [id])
+  
+  // Task assignments (hierarchy)
+  assignments   TaskAssignment[] @relation("TaskAssignments")
+}
+
+// ===================
+// Task Assignment Model
+// ===================
+
+model TaskAssignment {
+  id            String   @id @default(uuid())
+  taskId        String
+  task          Task     @relation("TaskAssignments", fields: [taskId], references: [id], onDelete: Cascade)
+  assignedTo    String
+  assignedBy    String
+  parentTaskId  String?
+  status        String   @default("assigned")
+  assignedAt   DateTime @default(now())
+  
+  // Status history (JSON)
+  statusHistory String?  // JSON string
+  
+  // Responses from agent
+  responses     String?  // JSON string
+  currentAction String?
+  progress      Int      @default(0)
+}
+
+// ===================
+// Agent Model
+// ===================
+
+model Agent {
+  id                String   @id @default(uuid())
+  name              String   @unique
+  role              String   @default("general")
+  status            String   @default("idle")
+  currentTaskId     String?
+  currentTaskTitle  String?
+  capabilities      String?  // JSON string
+  model             String?
+  totalTasksCompleted Int    @default(0)
+  totalErrors       Int      @default(0)
+  
+  // Agent activity (embedded)
+  agentActivity     String?  // JSON string
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  activities        Activity[]
+}
+
+// ===================
+// Note Model (Project Notes)
+// ===================
+
+model Note {
+  id            String   @id @default(uuid())
+  projectId     String
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  author        String
+  authorRole    String   @default("agent")
+  content       String
+  noteType      String   @default("update")
+  relatedTaskId String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// ===================
+// Message Model (Project Message Board)
+// ===================
+
+model Message {
+  id            String   @id @default(uuid())
+  projectId     String
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  author        String
+  authorRole    String   @default("agent")
+  content       String
+  messageType   String   @default("note")
+  parentId      String?
+  upvotes       String?  // JSON string - array of voter names
+  replies       String?  // JSON string
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// ===================
+// Activity Model
+// ===================
+
+model Activity {
+  id          String   @id @default(uuid())
+  projectId   String?
+  project     Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  agentId     String?
+  agent       Agent?   @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  type        String   // project, task, agent, note, message
+  action      String   // created, updated, deleted, assigned, etc.
+  description String
+  createdAt   DateTime @default(now())
+}

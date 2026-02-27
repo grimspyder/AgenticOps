@@ -11,7 +11,9 @@ const App = {
     // Initialization
     // ===================
     
-    init() {
+    async init() {
+        // Initialize DataStore from API (async)
+        await DataStore.init();
         this.render();
         this.bindEvents();
         this.startLiveTracking();
@@ -925,6 +927,6 @@ const App = {
 };
 
 // Initialize app when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-    App.init();
+document.addEventListener('DOMContentLoaded', async () => {
+    await App.init();
 });
