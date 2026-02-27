@@ -311,25 +311,36 @@ const DataStore = {
   getStats() {
     let totalTasks = 0;
     let completedTasks = 0;
-    let inProgressTasks = 0;
+    let openTasks = 0;
     
     for (const project of this.projects) {
       const tasks = project.tasks || [];
       totalTasks += tasks.length;
       completedTasks += tasks.filter(t => t.status === 'done').length;
-      inProgressTasks += tasks.filter(t => t.status === 'in_progress').length;
+      openTasks += tasks.filter(t => t.status !== 'done').length;
     }
     
     const activeAgents = this.agents.filter(a => a.status === 'active').length;
     
+    // Return structure matching what app.js expects
     return {
-      totalProjects: this.projects.length,
-      activeProjects: this.projects.filter(p => p.status === 'in_progress').length,
-      totalTasks,
-      completedTasks,
-      inProgressTasks,
-      totalAgents: this.agents.length,
-      activeAgents
+      projects: {
+        total: this.projects.length,
+        active: this.projects.filter(p => p.status === 'in_progress').length
+      },
+      tasks: {
+        total: totalTasks,
+        open: openTasks,
+        completed: completedTasks
+      },
+      agents: {
+        total: this.agents.length,
+        active: activeAgents
+      },
+      issues: {
+        total: 0,
+        unresolved: 0
+      }
     };
   }
 };
