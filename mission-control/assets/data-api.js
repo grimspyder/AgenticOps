@@ -23,9 +23,34 @@ const DataStore = {
   async load() {
     try {
       this.projects = await ApiClient.getProjects();
+      console.log('Loaded projects:', this.projects.length);
+    } catch (error) {
+      console.error('Failed to load projects:', error);
+      this.projects = [];
+    }
+    
+    try {
       this.agents = await ApiClient.getAgents();
+      console.log('Loaded agents:', this.agents.length);
+    } catch (error) {
+      console.error('Failed to load agents:', error);
+      this.agents = [];
+    }
+    
+    try {
       this.activities = await ApiClient.getActivities();
+      console.log('Loaded activities:', this.activities.length);
+    } catch (error) {
+      console.error('Failed to load activities:', error);
+      this.activities = [];
+    }
+    
+    try {
       this.taskHierarchy = await ApiClient.getTaskHierarchy();
+    } catch (error) {
+      console.error('Failed to load task hierarchy:', error);
+      this.taskHierarchy = [];
+    }
       
       // Also fetch OpenClaw sessions and merge with agents
       // This brings in agents spawned via OpenClaw

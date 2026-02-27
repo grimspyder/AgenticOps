@@ -12,14 +12,32 @@ const App = {
     // ===================
     
     async init() {
-        // Initialize DataStore from API (async)
-        await DataStore.init();
-        this.render();
-        this.bindEvents();
-        this.startLiveTracking();
-        
-        // Check OpenClaw connection status
-        this.checkOpenClawStatus();
+        try {
+            // Show loading state
+            document.getElementById('stat-projects').textContent = '...';
+            document.getElementById('stat-tasks').textContent = '...';
+            document.getElementById('stat-agents').textContent = '...';
+            document.getElementById('stat-issues').textContent = '...';
+            
+            // Initialize DataStore from API (async)
+            await DataStore.init();
+            this.render();
+            this.bindEvents();
+            this.startLiveTracking();
+            
+            // Check OpenClaw connection status
+            this.checkOpenClawStatus();
+            
+            console.log('Dashboard initialized successfully');
+        } catch (error) {
+            console.error('Failed to initialize dashboard:', error);
+            document.getElementById('projects-grid').innerHTML = 
+                '<div style="padding: 40px; text-align: center; color: var(--accent-red);">' +
+                '<h3>Failed to load dashboard</h3>' +
+                '<p>' + error.message + '</p>' +
+                '<button onclick="location.reload()" class="btn btn-primary" style="margin-top: 20px;">Retry</button>' +
+                '</div>';
+        }
     },
     
     // ===================
