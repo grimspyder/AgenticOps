@@ -46,12 +46,12 @@ const App = {
     },
     
     renderStats() {
-        const stats = DataStore.getStats();
+        const stats = DataStore.getStats() || {};
         
-        document.getElementById('stat-projects').textContent = stats.projects.active;
-        document.getElementById('stat-tasks').textContent = stats.tasks.open;
-        document.getElementById('stat-agents').textContent = stats.agents.active;
-        document.getElementById('stat-issues').textContent = stats.issues.unresolved;
+        document.getElementById('stat-projects').textContent = stats.projects?.active || 0;
+        document.getElementById('stat-tasks').textContent = stats.tasks?.open || 0;
+        document.getElementById('stat-agents').textContent = stats.agents?.active || 0;
+        document.getElementById('stat-issues').textContent = stats.issues?.unresolved || 0;
     },
     
     renderProjects() {
