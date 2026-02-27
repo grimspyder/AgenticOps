@@ -254,7 +254,8 @@ const App = {
     renderActivity() {
         const container = document.getElementById('activity-feed');
         const activities = DataStore.getActivities(10);
-        
+        console.log('renderActivity: first item keys=', activities[0] ? Object.keys(activities[0]) : 'EMPTY', 'desc=', activities[0]?.description, 'createdAt=', activities[0]?.createdAt);
+
         container.innerHTML = activities.map(activity => {
             const iconClass = this.getActivityIcon(activity.type, activity.action);
             const icon = this.getActivityEmoji(activity.type, activity.action);
