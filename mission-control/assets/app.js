@@ -238,8 +238,8 @@ const App = {
                         <div>${agent.currentTaskTitle || '<span style="color: var(--text-muted)">No active task</span>'}</div>
                     </div>
                     <div class="agent-stats">
-                        <span class="agent-stat"><strong>${agent.totalTasksCompleted}</strong> tasks done</span>
-                        <span class="agent-stat"><strong>${agent.totalErrors}</strong> errors</span>
+                        <span class="agent-stat"><strong>${agent.totalTasksCompleted ?? 0}</strong> tasks done</span>
+                        <span class="agent-stat"><strong>${agent.totalErrors ?? 0}</strong> errors</span>
                     </div>
                     ${unresolvedIssues > 0 ? `
                         <div class="agent-issues">
