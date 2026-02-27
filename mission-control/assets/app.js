@@ -335,7 +335,7 @@ const App = {
                         </div>
                     ` : ''}
                     <div class="assignment-timeline">
-                        ${(function() {
+                        ${(() => {
                             let history = entry.statusHistory;
                             if (typeof history === 'string') {
                                 try { history = JSON.parse(history); } catch(e) { history = []; }
