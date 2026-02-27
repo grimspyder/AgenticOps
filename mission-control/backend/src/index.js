@@ -5,15 +5,8 @@
 
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
-import fastifyStatic from 'fastify-static';
 import fastifyWebsocket from '@fastify/websocket';
 import { PrismaClient } from '@prisma/client';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-// Get __dirname equivalent in ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 // Initialize Prisma
 const prisma = new PrismaClient();
@@ -462,7 +455,7 @@ const start = async () => {
     
     // Initialize OpenClaw integration
     try {
-      openClawCleanup = await initOpenClawIntegration();
+      openClawCleanup = await initOpenClawIntegration(prisma);
     } catch (err) {
       console.log('OpenClaw integration deferred:', err.message);
     }

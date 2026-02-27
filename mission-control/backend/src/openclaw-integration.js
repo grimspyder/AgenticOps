@@ -10,11 +10,9 @@
  * Uses CLI polling - reliable and simple
  */
 
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
-
 // Configuration
+// Note: prisma instance is passed in from the main server via initOpenClawIntegration(prisma)
+let prisma = null;
 const POLL_INTERVAL_MS = 30000; // Poll every 30 seconds
 
 let pollInterval = null;
@@ -234,9 +232,10 @@ export async function assignTaskToAgent(taskId, agentName, taskData) {
 // Initialization
 // ===================
 
-export async function initOpenClawIntegration() {
+export async function initOpenClawIntegration(prismaInstance) {
+  prisma = prismaInstance;
   console.log('Initializing OpenClaw integration...');
-  
+
   // Start polling (CLI-based, reliable)
   startPolling();
   console.log('✓ OpenClaw integration active (polling)');

@@ -62,7 +62,9 @@ model Task {
   
   // Assignment (embedded from TaskAssignment)
   assignment    String?  // JSON string
-  
+  progress      Int      @default(0)
+  completedAt   DateTime?
+
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

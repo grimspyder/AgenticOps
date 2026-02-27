@@ -91,13 +91,6 @@ const DataStore = {
       } catch (ocErr) {
         console.log('OpenClaw sessions unavailable:', ocErr.message);
       }
-    } catch (error) {
-      console.error('Failed to load from API:', error);
-      this.projects = [];
-      this.agents = [];
-      this.activities = [];
-      this.taskHierarchy = [];
-    }
   },
   
   // For compatibility - save is no-op since we use API
@@ -226,7 +219,7 @@ const DataStore = {
   
   recalculateProgress(projectId) {
     // Handled by API on task updates
-    this.load();
+    return this.load();
   },
   
   // ===================

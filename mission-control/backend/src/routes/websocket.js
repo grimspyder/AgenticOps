@@ -3,17 +3,13 @@
  * Real-time agent↔dashboard communication
  */
 
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
-
 // Track connected clients
 const clients = new Map(); // ws -> { type, agentId, name }
 
 // Broadcast to all connected clients
 function broadcast(eventType, data) {
   const message = JSON.stringify({ type: eventType, payload: data, timestamp: new Date().toISOString() });
-  
+
   for (const [ws, info] of clients) {
     try {
       if (ws.readyState === 1) { // WebSocket.OPEN
@@ -28,7 +24,7 @@ function broadcast(eventType, data) {
 // Send to specific agent
 function sendToAgent(agentId, eventType, data) {
   const message = JSON.stringify({ type: eventType, payload: data, timestamp: new Date().toISOString() });
-  
+
   for (const [ws, info] of clients) {
     if (info.agentId === agentId && ws.readyState === 1) {
       ws.send(message);
@@ -39,24 +35,24 @@ function sendToAgent(agentId, eventType, data) {
 }
 
 // Handle incoming WebSocket messages
-async function handleMessage(ws, data) {
+async function handleMessage(ws, data, prisma) {
   try {
     const message = JSON.parse(data);
     const { type, payload } = message;
-    
+
     switch (type) {
       case 'agent:register':
         // Agent registers itself
-        clients.set(ws, { 
-          type: 'agent', 
-          agentId: payload.agentId, 
+        clients.set(ws, {
+          type: 'agent',
+          agentId: payload.agentId,
           name: payload.name,
           capabilities: payload.capabilities || [],
           connectedAt: new Date().toISOString()
         });
-        
+
         console.log(`Agent registered: ${payload.name} (${payload.agentId})`);
-        
+
         // Update agent status in database
         try {
           await prisma.agent.update({
@@ -76,14 +72,14 @@ async function handleMessage(ws, data) {
             }
           });
         }
-        
+
         // Broadcast agent connection
         broadcast('agent:connected', {
           agentId: payload.agentId,
           name: payload.name,
           capabilities: payload.capabilities
         });
-        
+
         // Send current tasks to agent
         const assignedTasks = await prisma.task.findMany({
           where: { assignee: payload.agentId, status: { not: 'done' } },
@@ -91,32 +87,32 @@ async function handleMessage(ws, data) {
         });
         sendToAgent(payload.agentId, 'agent:tasks', assignedTasks);
         break;
-        
+
       case 'agent:status':
         // Agent reports status
-        clients.set(ws, { 
-          ...clients.get(ws), 
+        clients.set(ws, {
+          ...clients.get(ws),
           status: payload.status,
           currentTaskId: payload.currentTaskId,
           progress: payload.progress
         });
-        
+
         // Update in database
         await prisma.agent.update({
           where: { id: payload.agentId },
-          data: { 
+          data: {
             status: payload.status,
             currentTaskId: payload.currentTaskId
           }
         });
-        
+
         broadcast('agent:status:update', payload);
         break;
-        
-      case 'agent:progress':
+
+      case 'agent:progress': {
         // Agent reports task progress
         const { taskId, progress, message: progressMessage, logs } = payload;
-        
+
         // Update task in database
         const task = await prisma.task.findUnique({ where: { id: taskId } });
         if (task) {
@@ -126,41 +122,42 @@ async function handleMessage(ws, data) {
           } else if (progress > 0) {
             newStatus = 'in_progress';
           }
-          
+
           await prisma.task.update({
             where: { id: taskId },
             data: { status: newStatus, progress }
           });
-          
+
           // Add activity
           await prisma.activity.create({
             data: {
               projectId: task.projectId,
               type: 'task',
               action: 'progress',
-              description: `${ws.name || 'Agent'} reported ${progress}% progress: ${progressMessage}`
+              description: `Agent reported ${progress}% progress: ${progressMessage}`
             }
           });
         }
-        
+
         broadcast('task:progress:update', payload);
         break;
-        
-      case 'agent:complete':
+      }
+
+      case 'agent:complete': {
         // Agent completes a task
         const { taskId: completeTaskId, result } = payload;
-        
-        const completedTask = await prisma.task.findUnique({ 
+
+        const completedTask = await prisma.task.findUnique({
           where: { id: completeTaskId },
           include: { project: true }
         });
-        
+
         if (completedTask) {
           await prisma.task.update({
             where: { id: completeTaskId },
             data: { status: 'done', progress: 100, completedAt: new Date() }
           });
-          
+
           await prisma.activity.create({
             data: {
               projectId: completedTask.projectId,
@@ -170,17 +167,18 @@ async function handleMessage(ws, data) {
             }
           });
         }
-        
+
         broadcast('task:completed', { taskId: completeTaskId, result });
         break;
-        
-      case 'dashboard:subscribe':
+      }
+
+      case 'dashboard:subscribe': {
         // Dashboard client subscribes to events
-        clients.set(ws, { 
+        clients.set(ws, {
           type: 'dashboard',
           subscriptions: payload.subscriptions || ['*']
         });
-        
+
         // Send current state
         const state = {
           agents: await prisma.agent.findMany(),
@@ -189,7 +187,8 @@ async function handleMessage(ws, data) {
         };
         ws.send(JSON.stringify({ type: 'dashboard:state', payload: state, timestamp: new Date().toISOString() }));
         break;
-        
+      }
+
       default:
         console.log('Unknown message type:', type);
     }
@@ -199,12 +198,12 @@ async function handleMessage(ws, data) {
 }
 
 // Handle client disconnect
-async function handleDisconnect(ws) {
+async function handleDisconnect(ws, prisma) {
   const info = clients.get(ws);
-  
+
   if (info && info.type === 'agent') {
     console.log(`Agent disconnected: ${info.name} (${info.agentId})`);
-    
+
     // Update agent status in database
     try {
       await prisma.agent.update({
@@ -214,52 +213,54 @@ async function handleDisconnect(ws) {
     } catch (e) {
       // Ignore
     }
-    
+
     broadcast('agent:disconnected', {
       agentId: info.agentId,
       name: info.name
     });
   }
-  
+
   clients.delete(ws);
 }
 
 export default async function websocketRoutes(fastify, options) {
+  const prisma = fastify.prisma;
+
   // WebSocket endpoint
   fastify.get('/ws', { websocket: true }, (connection, req) => {
     const socket = connection.socket;
     console.log('WebSocket client connected');
-    
+
     // Handle incoming messages
     socket.on('message', async (data) => {
-      await handleMessage(socket, data.toString());
+      await handleMessage(socket, data.toString(), prisma);
     });
-    
+
     // Handle close
     socket.on('close', async () => {
-      await handleDisconnect(socket);
+      await handleDisconnect(socket, prisma);
     });
-    
+
     // Handle errors
     socket.on('error', (err) => {
       console.error('WebSocket error:', err);
     });
-    
+
     // Send welcome message
-    socket.send(JSON.stringify({ 
-      type: 'welcome', 
+    socket.send(JSON.stringify({
+      type: 'welcome',
       message: 'Connected to Mission Control WebSocket',
-      timestamp: new Date().toISOString() 
+      timestamp: new Date().toISOString()
     }));
   });
-  
+
   // REST endpoint to manually broadcast (for testing)
   fastify.post('/ws/broadcast', async (req, reply) => {
     const { event, data } = req.body;
     broadcast(event, data);
     return { success: true, clients: clients.size };
   });
-  
+
   // Get connected clients (debug)
   fastify.get('/ws/clients', async () => {
     const clientList = [];
