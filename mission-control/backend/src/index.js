@@ -5,7 +5,14 @@
 
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import fastifyStatic from 'fastify-static';
 import { PrismaClient } from '@prisma/client';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Get __dirname equivalent in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Initialize Prisma
 const prisma = new PrismaClient();
@@ -23,6 +30,9 @@ await fastify.register(cors, {
   origin: true, // Allow all origins for dev
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']
 });
+
+// NOTE: Frontend is served separately via Python or Node static server
+// Run: cd mission-control && python3 -m http.server 3000
 
 // Simple API key authentication (future-proofing)
 // In production, replace with proper JWT auth
