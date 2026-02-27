@@ -83,6 +83,7 @@ fastify.get('/api/health', async () => {
 // ===================
 // Import Routes
 // ===================
+import { mcEvents } from './events.js';
 import projectsRoutes from './routes/projects.js';
 import tasksRoutes from './routes/tasks.js';
 import agentsRoutes from './routes/agents.js';
@@ -411,6 +412,139 @@ fastify.post('/api/tasks/:taskId/progress', async (request, reply) => {
     });
     
     return response;
+  } catch (error) {
+    reply.code(500);
+    return { error: error.message };
+  }
+});
+
+// ===================
+// Agent Reporting API — used by mc-report script
+// No assignment pre-requirement; agents self-report via callsign
+// ===================
+
+// POST /api/tasks/:taskId/report — agent reports task progress/status
+fastify.post('/api/tasks/:taskId/report', async (request, reply) => {
+  try {
+    const { taskId } = request.params;
+    const { agentName, status, progress, message } = request.body;
+
+    const task = await prisma.task.findUnique({ where: { id: taskId } });
+    if (!task) {
+      reply.code(404);
+      return { error: 'Task not found' };
+    }
+
+    // Determine new status
+    let newStatus = task.status;
+    if (status) {
+      newStatus = status;
+    } else if (progress !== undefined) {
+      if (progress >= 100) newStatus = 'done';
+      else if (progress > 0) newStatus = 'in_progress';
+    }
+
+    const updateData = {
+      status: newStatus,
+      ...(progress !== undefined && { progress }),
+      ...(agentName && !task.assignee && { assignee: agentName }),
+      ...(newStatus === 'done' && { completedAt: new Date() })
+    };
+
+    const updated = await prisma.task.update({
+      where: { id: taskId },
+      data: updateData
+    });
+
+    // Log activity
+    const activityDescription = message
+      ? `${agentName || 'Agent'}: ${message}`
+      : `${agentName || 'Agent'} marked task ${newStatus}${progress !== undefined ? ` (${progress}%)` : ''}`;
+
+    await prisma.activity.create({
+      data: {
+        projectId: task.projectId,
+        type: 'task',
+        action: newStatus === 'done' ? 'completed' : 'progress',
+        description: activityDescription
+      }
+    });
+
+    // Broadcast to dashboard via WebSocket
+    mcEvents.emit('task:updated', {
+      taskId,
+      task: updated,
+      agentName,
+      status: newStatus,
+      progress,
+      message
+    });
+
+    return { success: true, task: updated };
+  } catch (error) {
+    reply.code(500);
+    return { error: error.message };
+  }
+});
+
+// POST /api/agents/report — agent reports its own status by callsign name
+fastify.post('/api/agents/report', async (request, reply) => {
+  try {
+    const { name, status, currentTaskId, currentTaskTitle, action } = request.body;
+
+    if (!name) {
+      reply.code(400);
+      return { error: 'name is required' };
+    }
+
+    // Upsert agent by name
+    const agent = await prisma.agent.upsert({
+      where: { name },
+      update: {
+        ...(status !== undefined && { status }),
+        ...(currentTaskId !== undefined && { currentTaskId }),
+        ...(currentTaskTitle !== undefined && { currentTaskTitle }),
+        ...(action !== undefined && {
+          agentActivity: JSON.stringify({
+            currentAction: action,
+            updatedAt: new Date().toISOString()
+          })
+        }),
+        updatedAt: new Date()
+      },
+      create: {
+        name,
+        status: status || 'active',
+        role: 'general',
+        currentTaskId: currentTaskId || null,
+        currentTaskTitle: currentTaskTitle || null,
+        ...(action && {
+          agentActivity: JSON.stringify({
+            currentAction: action,
+            updatedAt: new Date().toISOString()
+          })
+        })
+      }
+    });
+
+    // Log status change as activity
+    if (status) {
+      await prisma.activity.create({
+        data: {
+          agentId: agent.id,
+          type: 'agent',
+          action: status,
+          description: action
+            ? `${name} is ${status}: ${action}`
+            : `${name} is now ${status}`
+        }
+      });
+    }
+
+    // Broadcast to dashboard
+    mcEvents.emit('agent:updated', { agent });
+
+    return { success: true, agent };
   } catch (error) {
     reply.code(500);
     return { error: error.message };

@@ -2,6 +2,7 @@
  * Mission Control Dashboard - WebSocket Handler
  * Real-time agent↔dashboard communication
  */
+import { mcEvents } from '../events.js';
 
 // Track connected clients
 const clients = new Map(); // ws -> { type, agentId, name }
@@ -225,6 +226,10 @@ async function handleDisconnect(ws, prisma) {
 
 export default async function websocketRoutes(fastify, options) {
   const prisma = fastify.prisma;
+
+  // Subscribe to REST-triggered events and broadcast to WebSocket clients
+  mcEvents.on('task:updated', (data) => broadcast('task:updated', data));
+  mcEvents.on('agent:updated', (data) => broadcast('agent:updated', data));
 
   // WebSocket endpoint
   fastify.get('/ws', { websocket: true }, (connection, req) => {
