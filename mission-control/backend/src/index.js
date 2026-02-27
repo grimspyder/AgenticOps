@@ -6,7 +6,13 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import fastifyWebsocket from '@fastify/websocket';
+import fastifyStatic from '@fastify/static';
 import { PrismaClient } from '@prisma/client';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Initialize Prisma
 const prisma = new PrismaClient();
@@ -28,8 +34,14 @@ await fastify.register(cors, {
 // Register WebSocket plugin
 await fastify.register(fastifyWebsocket);
 
-// NOTE: Frontend is served separately via Python or Node static server
-// Run: cd mission-control && python3 -m http.server 3000
+// Serve static frontend from the mission-control root (one level above backend/)
+await fastify.register(fastifyStatic, {
+  root: path.resolve(__dirname, '../../'),
+  prefix: '/',
+  index: 'index.html',
+  // Don't intercept /api or /ws routes
+  constraints: {}
+});
 
 // Simple API key authentication (future-proofing)
 // In production, replace with proper JWT auth
