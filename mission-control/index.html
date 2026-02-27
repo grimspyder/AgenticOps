@@ -375,6 +375,17 @@
         .agent-avatar.research { background: rgba(163, 113, 247, 0.2); }
         .agent-avatar.testing { background: rgba(57, 197, 207, 0.2); }
         .agent-avatar.orchestration { background: rgba(63, 185, 80, 0.2); }
+        .agent-avatar.oc { background: rgba(255, 165, 0, 0.3); }  /* OpenClaw orange */
+        
+        .agent-card.openclaw-agent {
+            border-color: rgba(255, 165, 0, 0.5);
+            background: linear-gradient(135deg, var(--bg-card), rgba(255, 165, 0, 0.05));
+        }
+        
+        .oc-badge {
+            font-size: 14px;
+            margin-left: 4px;
+        }
 
         .agent-info {
             flex: 1;
@@ -1409,6 +1420,7 @@
             <input type="text" class="search-box" placeholder="Search projects, tasks, agents...">
             <div class="header-actions">
                 <span id="ws-connection-indicator" class="ws-connection-indicator ws-disconnected">🔴 Connecting...</span>
+                <span id="oc-connection-indicator" class="ws-connection-indicator" style="margin-left: 8px;">🦞 Checking...</span>
                 <button class="btn">🔔 <span class="nav-item-badge">3</span></button>
                 <button class="btn btn-primary" onclick="App.openNewProjectModal()">+ New Project</button>
             </div>

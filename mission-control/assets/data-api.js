@@ -26,6 +26,46 @@ const DataStore = {
       this.agents = await ApiClient.getAgents();
       this.activities = await ApiClient.getActivities();
       this.taskHierarchy = await ApiClient.getTaskHierarchy();
+      
+      // Also fetch OpenClaw sessions and merge with agents
+      // This brings in agents spawned via OpenClaw
+      try {
+        const openclawData = await ApiClient.getOpenClawSessions();
+        if (openclawData && openclawData.sessions) {
+          // Convert OpenClaw sessions to agent format
+          const ocAgents = openclawData.sessions
+            .filter(s => s.key?.includes(':subagent:') || s.key?.includes(':direct:'))
+            .map(s => ({
+              id: s.sessionId,
+              name: s.key || s.agentId,
+              role: s.key?.includes(':subagent:') ? 'subagent' : 'main',
+              status: 'active',
+              currentTaskId: s.sessionId,
+              model: s.model,
+              capabilities: { openClawKey: s.key, sessionId: s.sessionId },
+              source: 'openclaw',
+              updatedAt: new Date(s.updatedAt).toISOString()
+            }));
+          
+          // Merge with existing agents (OpenClaw agents take precedence for status)
+          const existingIds = new Set(this.agents.map(a => a.id));
+          for (const ocAgent of ocAgents) {
+            const existing = this.agents.find(a => 
+              a.name === ocAgent.name || a.currentTaskId === ocAgent.sessionId
+            );
+            if (existing) {
+              // Update existing agent with OpenClaw status
+              existing.status = 'active';
+              existing.currentTaskId = ocAgent.sessionId;
+            } else if (!existingIds.has(ocAgent.id)) {
+              // Add new agent from OpenClaw
+              this.agents.push(ocAgent);
+            }
+          }
+        }
+      } catch (ocErr) {
+        console.log('OpenClaw sessions unavailable:', ocErr.message);
+      }
     } catch (error) {
       console.error('Failed to load from API:', error);
       this.projects = [];

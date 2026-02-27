@@ -258,6 +258,29 @@ const ApiClient = {
   async getTaskHierarchy() {
     const res = await fetch(`${API_BASE}/task-hierarchy`);
     return res.json();
+  },
+  
+  // ===================
+  // OpenClaw Integration
+  // ===================
+  
+  async getOpenClawHealth() {
+    const res = await fetch(`${API_BASE}/openclaw/health`);
+    return res.json();
+  },
+  
+  async getOpenClawSessions() {
+    const res = await fetch(`${API_BASE}/openclaw/sessions`);
+    return res.json();
+  },
+  
+  async assignTaskViaOpenClaw(taskId, agentName) {
+    const res = await fetch(`${API_BASE}/openclaw/assign`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ taskId, agentName })
+    });
+    return res.json();
   }
 };
 

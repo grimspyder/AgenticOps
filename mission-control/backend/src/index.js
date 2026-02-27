@@ -446,12 +446,26 @@ fastify.get('/api/agents/:agentName/tasks', async (request, reply) => {
   }
 });
 
-// Start server
+// ===================
+// OpenClaw Integration
+// ===================
+import { initOpenClawIntegration, assignTaskToAgent, checkOpenClawHealth } from './openclaw-integration.js';
+
+// Initialize OpenClaw integration
+let openClawCleanup = null;
+
 const start = async () => {
   try {
     const port = process.env.PORT || 3001;
     await fastify.listen({ port, host: '0.0.0.0' });
     console.log(`🚀 Mission Control API running on http://localhost:${port}`);
+    
+    // Initialize OpenClaw integration
+    try {
+      openClawCleanup = await initOpenClawIntegration();
+    } catch (err) {
+      console.log('OpenClaw integration deferred:', err.message);
+    }
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);
@@ -460,9 +474,105 @@ const start = async () => {
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
+  if (openClawCleanup) {
+    await openClawCleanup();
+  }
   await prisma.$disconnect();
   await fastify.close();
   process.exit(0);
+});
+
+// ===================
+// OpenClaw Webhook Handler
+// ===================
+
+// Webhook endpoint for OpenClaw events
+fastify.post('/api/openclaw/webhook', async (request, reply) => {
+  try {
+    const { event, data } = request.body;
+    
+    console.log(`OpenClaw webhook received: ${event}`);
+    
+    switch (event) {
+      case 'session_start':
+      case 'session:start':
+        return { received: true, event };
+      case 'session_end':
+      case 'session:end':
+        return { received: true, event };
+      case 'message':
+        return { received: true, event };
+      case 'agent:spawned':
+        return { received: true, event };
+      case 'agent:despawned':
+        return { received: true, event };
+      default:
+        console.log('Unknown OpenClaw event:', event);
+        return { received: true, event: 'unknown' };
+    }
+  } catch (error) {
+    reply.code(500);
+    return { error: error.message };
+  }
+});
+
+// OpenClaw health check
+fastify.get('/api/openclaw/health', async (request, reply) => {
+  const isHealthy = await checkOpenClawHealth();
+  return { 
+    openclaw: isHealthy ? 'connected' : 'disconnected',
+    timestamp: new Date().toISOString()
+  };
+});
+
+// Assign task via OpenClaw
+fastify.post('/api/openclaw/assign', async (request, reply) => {
+  try {
+    const { taskId, agentName } = request.body;
+    
+    // Get task details
+    const task = await prisma.task.findUnique({
+      where: { id: taskId }
+    });
+    
+    if (!task) {
+      reply.code(404);
+      return { error: 'Task not found' };
+    }
+    
+    // Assign via OpenClaw integration
+    const result = await assignTaskToAgent(taskId, agentName, {
+      title: task.title,
+      description: task.description,
+      priority: task.priority
+    });
+    
+    return result;
+  } catch (error) {
+    reply.code(500);
+    return { error: error.message };
+  }
+});
+
+// Get OpenClaw sessions (proxy)
+fastify.get('/api/openclaw/sessions', async (request, reply) => {
+  try {
+    const { execSync } = await import('child_process');
+    const result = execSync(
+      'openclaw gateway call status --json --timeout 5000',
+      { encoding: 'utf8', timeout: 10000 }
+    );
+    
+    const status = JSON.parse(result);
+    return {
+      agents: status.heartbeat?.agents || [],
+      sessions: status.sessions?.recent || [],
+      count: status.sessions?.count || 0
+    };
+  } catch (error) {
+    reply.code(503);
+    return { error: 'OpenClaw gateway unavailable', details: error.message };
+  }
 });
 
 start();

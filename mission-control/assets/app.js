@@ -17,6 +17,39 @@ const App = {
         this.render();
         this.bindEvents();
         this.startLiveTracking();
+        
+        // Check OpenClaw connection status
+        this.checkOpenClawStatus();
+    },
+    
+    // ===================
+    // OpenClaw Status
+    // ===================
+    
+    async checkOpenClawStatus() {
+        const indicator = document.getElementById('oc-connection-indicator');
+        if (!indicator) return;
+        
+        try {
+            const health = await ApiClient.getOpenClawHealth();
+            if (health.openclaw === 'connected') {
+                indicator.textContent = '🦞 Connected';
+                indicator.className = 'ws-connection-indicator ws-connected';
+                indicator.style.color = '#4caf50';
+            } else {
+                indicator.textContent = '🦞 Disconnected';
+                indicator.className = 'ws-connection-indicator ws-disconnected';
+            }
+        } catch (err) {
+            indicator.textContent = '🦞 Offline';
+            indicator.className = 'ws-connection-indicator ws-disconnected';
+        }
+        
+        // Refresh OpenClaw agents periodically
+        setInterval(() => {
+            this.checkOpenClawStatus();
+            DataStore.load().then(() => this.render());
+        }, 30000);
     },
     
     // ===================
@@ -169,14 +202,16 @@ const App = {
             const avatarInitials = agent.name.split(' ').map(n => n[0]).join('');
             const roleClass = agent.role.toLowerCase();
             const unresolvedIssues = agent.agentActivity?.issues?.filter(i => !i.resolved).length || 0;
+            const isOpenClaw = agent.source === 'openclaw';
+            const ocBadge = isOpenClaw ? '<span class="oc-badge" title="Connected via OpenClaw">🦞</span>' : '';
             
             return `
-                <div class="agent-card">
+                <div class="agent-card ${isOpenClaw ? 'openclaw-agent' : ''}">
                     <div class="agent-header">
-                        <div class="agent-avatar ${roleClass}">${avatarInitials}</div>
+                        <div class="agent-avatar ${roleClass} ${isOpenClaw ? 'oc' : ''}">${avatarInitials}</div>
                         <div class="agent-info">
-                            <div class="agent-name">${this.escapeHtml(agent.name)}</div>
-                            <div class="agent-role">${this.formatRole(agent.role)}</div>
+                            <div class="agent-name">${this.escapeHtml(agent.name)} ${ocBadge}</div>
+                            <div class="agent-role">${this.formatRole(agent.role)}${isOpenClaw ? ' (OpenClaw)' : ''}</div>
                         </div>
                         <div class="agent-status ${agent.status}" title="${agent.status}"></div>
                     </div>
