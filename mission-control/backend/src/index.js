@@ -8,8 +8,12 @@ import cors from '@fastify/cors';
 import fastifyWebsocket from '@fastify/websocket';
 import fastifyStatic from '@fastify/static';
 import { PrismaClient } from '@prisma/client';
+import { exec } from 'child_process';
+import { promisify } from 'util';
 import path from 'path';
 import { fileURLToPath } from 'url';
+
+const execAsync = promisify(exec);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -562,13 +566,11 @@ fastify.post('/api/openclaw/assign', async (request, reply) => {
 // Get OpenClaw sessions (proxy)
 fastify.get('/api/openclaw/sessions', async (request, reply) => {
   try {
-    const { execSync } = await import('child_process');
-    const result = execSync(
+    const { stdout } = await execAsync(
       'openclaw gateway call status --json --timeout 5000',
-      { encoding: 'utf8', timeout: 10000 }
+      { timeout: 10000 }
     );
-    
-    const status = JSON.parse(result);
+    const status = JSON.parse(stdout);
     return {
       agents: status.heartbeat?.agents || [],
       sessions: status.sessions?.recent || [],

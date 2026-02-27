@@ -10,6 +10,11 @@
  * Uses CLI polling - reliable and simple
  */
 
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
+
 // Configuration
 // Note: prisma instance is passed in from the main server via initOpenClawIntegration(prisma)
 let prisma = null;
@@ -26,13 +31,11 @@ const knownSessions = new Map(); // sessionId -> session data
 
 async function fetchOpenClawSessions() {
   try {
-    const { execSync } = await import('child_process');
-    const result = execSync(
+    const { stdout } = await execAsync(
       'openclaw gateway call status --json --timeout 5000',
       { encoding: 'utf8', timeout: 10000 }
     );
-    
-    const status = JSON.parse(result);
+    const status = JSON.parse(stdout);
     return status.sessions?.recent || [];
   } catch (err) {
     console.log('OpenClaw: Unable to fetch sessions');
@@ -251,11 +254,7 @@ export async function initOpenClawIntegration(prismaInstance) {
  */
 export async function checkOpenClawHealth() {
   try {
-    const { execSync } = await import('child_process');
-    execSync('openclaw gateway call health --json', { 
-      encoding: 'utf8', 
-      timeout: 5000 
-    });
+    await execAsync('openclaw gateway call health --json', { timeout: 5000 });
     return true;
   } catch {
     return false;
