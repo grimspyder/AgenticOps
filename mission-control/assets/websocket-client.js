@@ -231,4 +231,5 @@ if (typeof window !== 'undefined') {
   }
 }
 
-export default WebSocketClient;
+// Make globally available instead of ES6 export
+window.WebSocketClient = WebSocketClient;

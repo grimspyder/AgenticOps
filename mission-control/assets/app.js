@@ -335,12 +335,18 @@ const App = {
                         </div>
                     ` : ''}
                     <div class="assignment-timeline">
-                        ${(entry.statusHistory || []).slice(-2).map(h => `
+                        ${(function() {
+                            let history = entry.statusHistory;
+                            if (typeof history === 'string') {
+                                try { history = JSON.parse(history); } catch(e) { history = []; }
+                            }
+                            return (history || []).slice(-2).map(h => `
                             <div class="timeline-item">
                                 <span class="timeline-status">${this.formatStatus(h.status)}</span>
                                 <span class="timeline-note">${this.escapeHtml(h.note || '')}</span>
                             </div>
-                        `).join('')}
+                            `).join('');
+                        })()}
                     </div>
                 </div>
             `;
@@ -428,10 +434,14 @@ const App = {
         document.getElementById('detail-problem').textContent = project.problemStatement || 'No problem statement defined.';
         document.getElementById('detail-solution').textContent = project.solution || 'No solution defined.';
         
-        // Render plan
+        // Render plan - handle both JSON string and array
         const planList = document.getElementById('detail-plan');
-        if (project.plan && project.plan.length > 0) {
-            planList.innerHTML = project.plan.map(step => `<li>${this.escapeHtml(step)}</li>`).join('');
+        let planArray = project.plan;
+        if (typeof project.plan === 'string') {
+            try { planArray = JSON.parse(project.plan); } catch(e) { planArray = []; }
+        }
+        if (planArray && planArray.length > 0) {
+            planList.innerHTML = planArray.map(step => `<li>${this.escapeHtml(step)}</li>`).join('');
         } else {
             planList.innerHTML = '<li style="color: var(--text-muted)">No plan defined.</li>';
         }
