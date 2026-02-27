@@ -20,11 +20,80 @@ const App = {
     },
     
     // ===================
-    // Live Tracking
+    // Live Tracking (WebSocket)
     // ===================
     
     startLiveTracking() {
-        // Update every 5 seconds for demo
+        // Set up WebSocket event listeners for real-time updates
+        
+        // Agent connected
+        WebSocketClient.on('agent:connected', (data) => {
+            console.log('Agent connected:', data);
+            this.showNotification(`${data.name} connected`, 'success');
+            DataStore.load().then(() => this.render());
+        });
+        
+        // Agent disconnected
+        WebSocketClient.on('agent:disconnected', (data) => {
+            console.log('Agent disconnected:', data);
+            this.showNotification(`${data.name} disconnected`, 'warning');
+            DataStore.load().then(() => this.render());
+        });
+        
+        // Agent status update
+        WebSocketClient.on('agent:status:update', (data) => {
+            console.log('Agent status update:', data);
+            DataStore.load().then(() => this.render());
+        });
+        
+        // Task progress update
+        WebSocketClient.on('task:progress:update', (data) => {
+            console.log('Task progress:', data);
+            this.showNotification(`Task progress: ${data.progress}% - ${data.message}`, 'info');
+            DataStore.load().then(() => this.render());
+        });
+        
+        // Task completed
+        WebSocketClient.on('task:completed', (data) => {
+            console.log('Task completed:', data);
+            this.showNotification('Task completed! 🎉', 'success');
+            DataStore.load().then(() => this.render());
+        });
+        
+        // Dashboard state received (initial sync)
+        WebSocketClient.on('dashboard:state', (data) => {
+            console.log('Dashboard state received:', data);
+            DataStore.agents = data.agents || DataStore.agents;
+            DataStore.load().then(() => this.render());
+        });
+        
+        // Activity update
+        WebSocketClient.on('activity:new', (data) => {
+            console.log('New activity:', data);
+            DataStore.load().then(() => this.render());
+        });
+        
+        // Connection status
+        WebSocketClient.on('connected', () => {
+            console.log('WebSocket connected - real-time updates active');
+            this.showNotification('Real-time updates connected', 'success');
+        });
+        
+        WebSocketClient.on('disconnected', () => {
+            console.log('WebSocket disconnected - using fallback polling');
+            this.showNotification('Reconnecting to real-time updates...', 'warning');
+        });
+        
+        // Fallback: Also keep polling as backup (every 30 seconds)
+        // This ensures we still get updates if WebSocket fails
+        setInterval(() => {
+            if (!WebSocketClient.isConnected) {
+                console.log('Polling fallback: refreshing data');
+                DataStore.load().then(() => this.render());
+            }
+        }, 30000);
+        
+        // Still simulate agent work for demo purposes (can be removed in production)
         setInterval(() => {
             DataStore.simulateAgentWork();
             this.render();
@@ -861,6 +930,30 @@ const App = {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    },
+    
+    showNotification(message, type = 'info') {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.textContent = message;
+        
+        // Add to page
+        const container = document.getElementById('notifications') || document.body;
+        if (!document.getElementById('notifications')) {
+            const nc = document.createElement('div');
+            nc.id = 'notifications';
+            nc.style.cssText = 'position:fixed;top:80px;right:20px;z-index:9999;';
+            document.body.appendChild(nc);
+        }
+        
+        document.getElementById('notifications').appendChild(notification);
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            notification.style.opacity = '0';
+            setTimeout(() => notification.remove(), 300);
+        }, 5000);
     },
     
     formatStatus(status) {

@@ -1331,6 +1331,71 @@
         .form-info p {
             margin: 0;
         }
+        
+        /* Notifications */
+        .notification {
+            padding: 12px 20px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            font-size: 14px;
+            animation: slideIn 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        
+        .notification-success {
+            border-left: 4px solid var(--accent-green);
+            background: rgba(63, 185, 80, 0.1);
+        }
+        
+        .notification-warning {
+            border-left: 4px solid var(--accent-yellow);
+            background: rgba(210, 153, 34, 0.1);
+        }
+        
+        .notification-error {
+            border-left: 4px solid var(--accent-red);
+            background: rgba(248, 81, 73, 0.1);
+        }
+        
+        .notification-info {
+            border-left: 4px solid var(--accent-blue);
+            background: rgba(88, 166, 255, 0.1);
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        /* WebSocket Connection Indicator */
+        .ws-connection-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .ws-connected {
+            background: rgba(63, 185, 80, 0.15);
+            color: var(--accent-green);
+        }
+        
+        .ws-disconnected {
+            background: rgba(248, 81, 73, 0.15);
+            color: var(--accent-red);
+        }
     </style>
 </head>
 <body>
@@ -1343,6 +1408,7 @@
             </div>
             <input type="text" class="search-box" placeholder="Search projects, tasks, agents...">
             <div class="header-actions">
+                <span id="ws-connection-indicator" class="ws-connection-indicator ws-disconnected">🔴 Connecting...</span>
                 <button class="btn">🔔 <span class="nav-item-badge">3</span></button>
                 <button class="btn btn-primary" onclick="App.openNewProjectModal()">+ New Project</button>
             </div>
@@ -1765,6 +1831,9 @@
     <script src="assets/api-client.js"></script>
     <!-- Data layer using API (replaces localStorage DataStore) -->
     <script src="assets/data-api.js"></script>
+    <!-- WebSocket client for real-time updates -->
+    <script src="assets/websocket-client.js"></script>
+    <!-- Main app controller -->
     <script src="assets/app.js"></script>
 </body>
 </html>

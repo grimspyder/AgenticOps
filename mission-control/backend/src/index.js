@@ -6,6 +6,7 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import fastifyStatic from 'fastify-static';
+import fastifyWebsocket from '@fastify/websocket';
 import { PrismaClient } from '@prisma/client';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -30,6 +31,9 @@ await fastify.register(cors, {
   origin: true, // Allow all origins for dev
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']
 });
+
+// Register WebSocket plugin
+await fastify.register(fastifyWebsocket);
 
 // NOTE: Frontend is served separately via Python or Node static server
 // Run: cd mission-control && python3 -m http.server 3000
@@ -73,11 +77,13 @@ fastify.get('/api/health', async () => {
 import projectsRoutes from './routes/projects.js';
 import tasksRoutes from './routes/tasks.js';
 import agentsRoutes from './routes/agents.js';
+import websocketRoutes from './routes/websocket.js';
 
 // Register routes
 fastify.register(projectsRoutes, { prefix: '/api/projects' });
 fastify.register(tasksRoutes, { prefix: '/api' });
 fastify.register(agentsRoutes, { prefix: '/api/agents' });
+fastify.register(websocketRoutes);
 
 // Activity routes
 fastify.get('/api/activities', async (request, reply) => {
