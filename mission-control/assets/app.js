@@ -215,14 +215,36 @@ const App = {
     renderAgents() {
         const container = document.getElementById('agents-grid');
         const agents = DataStore.agents;
-        
+
+        // Build task lookup from all projects
+        const allTasks = DataStore.projects.flatMap(p => (p.tasks || []).map(t => ({ ...t, projectName: p.name })));
+        const taskById = Object.fromEntries(allTasks.map(t => [t.id, t]));
+
+        // Compute per-agent stats from real task data
+        const agentStats = {};
+        for (const task of allTasks) {
+            const name = task.assignee;
+            if (!name) continue;
+            if (!agentStats[name]) agentStats[name] = { done: 0, active: null };
+            if (task.status === 'done') agentStats[name].done++;
+            else if (task.status === 'in_progress' && !agentStats[name].active) agentStats[name].active = task;
+        }
+
         container.innerHTML = agents.map(agent => {
             const avatarInitials = agent.name.split(' ').map(n => n[0]).join('');
             const roleClass = agent.role.toLowerCase();
             const unresolvedIssues = agent.agentActivity?.issues?.filter(i => !i.resolved).length || 0;
             const isOpenClaw = agent.source === 'openclaw';
             const ocBadge = isOpenClaw ? '<span class="oc-badge" title="Connected via OpenClaw">🦞</span>' : '';
-            
+
+            const stats = agentStats[agent.name] || { done: 0, active: null };
+            // Resolve current task: prefer in_progress task, fall back to DB currentTaskId lookup
+            const currentTask = stats.active || (agent.currentTaskId ? taskById[agent.currentTaskId] : null);
+            const taskDisplay = currentTask
+                ? `${this.escapeHtml(currentTask.title)} <span style="color:var(--text-muted);font-size:11px">(${currentTask.projectName || ''})</span>`
+                : '<span style="color: var(--text-muted)">No active task</span>';
+            const tasksDone = stats.done || agent.totalTasksCompleted || 0;
+
             return `
                 <div class="agent-card ${isOpenClaw ? 'openclaw-agent' : ''}">
                     <div class="agent-header">
@@ -235,10 +257,10 @@ const App = {
                     </div>
                     <div class="agent-current-task">
                         <div class="agent-task-label">Currently Working On</div>
-                        <div>${agent.currentTaskTitle || '<span style="color: var(--text-muted)">No active task</span>'}</div>
+                        <div>${taskDisplay}</div>
                     </div>
                     <div class="agent-stats">
-                        <span class="agent-stat"><strong>${agent.totalTasksCompleted ?? 0}</strong> tasks done</span>
+                        <span class="agent-stat"><strong>${tasksDone}</strong> tasks done</span>
                         <span class="agent-stat"><strong>${agent.totalErrors ?? 0}</strong> errors</span>
                     </div>
                     ${unresolvedIssues > 0 ? `
