@@ -791,6 +791,51 @@
         /* ===================
            Notes Section
            =================== */
+        .agents-assignment-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .agent-assignment-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 12px;
+        }
+
+        .agent-assignment-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+
+        .agent-assignment-name {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 500;
+            font-size: 13px;
+        }
+
+        .agent-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+
+        .agent-assignment-tasks {
+            font-size: 12px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
         .notes-list {
             max-height: 300px;
             overflow-y: auto;
@@ -1585,6 +1630,14 @@
                 </div>
             </div>
 
+            <!-- Assigned Agents Section -->
+            <div class="detail-section">
+                <div class="detail-section-title" id="detail-agents-count">Assigned Agents</div>
+                <div class="agents-assignment-list" id="detail-agents">
+                    <!-- Rendered by JS -->
+                </div>
+            </div>
+
             <!-- Agent Notes Section -->
             <div class="detail-section">
                 <div class="detail-section-header">
@@ -1839,12 +1892,12 @@
       };
     </script>
     <!-- API Client for backend communication -->
-    <script src="assets/api-client.js?v=5"></script>
+    <script src="assets/api-client.js?v=6"></script>
     <!-- Data layer using API (replaces localStorage DataStore) -->
-    <script src="assets/data-api.js?v=5"></script>
+    <script src="assets/data-api.js?v=6"></script>
     <!-- WebSocket client for real-time updates -->
-    <script src="assets/websocket-client.js?v=5"></script>
+    <script src="assets/websocket-client.js?v=6"></script>
     <!-- Main app controller -->
-    <script src="assets/app.js?v=5"></script>
+    <script src="assets/app.js?v=6"></script>
 </body>
 </html>

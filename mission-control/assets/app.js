@@ -452,9 +452,12 @@ const App = {
         // Render notes
         this.renderProjectNotes(project);
         
+        // Render agents
+        this.renderProjectAgents(project);
+
         // Render messages
         this.renderProjectMessages(project);
-        
+
         // Show panel
         document.getElementById('detailPanel').classList.add('open');
         document.getElementById('modalOverlay').classList.add('open');
@@ -499,9 +502,60 @@ const App = {
     },
     
     // ===================
+    // Project Agents
+    // ===================
+
+    renderProjectAgents(project) {
+        const container = document.getElementById('detail-agents');
+        const countEl = document.getElementById('detail-agents-count');
+        if (!container || !countEl) return;
+
+        const assigneeNames = [...new Set(
+            (project.tasks || []).filter(t => t.assignee).map(t => t.assignee)
+        )];
+
+        countEl.textContent = `Assigned Agents (${assigneeNames.length})`;
+
+        if (assigneeNames.length === 0) {
+            container.innerHTML = '<div style="padding: 12px; color: var(--text-muted); font-size: 13px;">No agents assigned to tasks yet.</div>';
+            return;
+        }
+
+        const statusColor = { active: '#4caf50', idle: '#ff9800', offline: '#666', unknown: '#666' };
+
+        container.innerHTML = assigneeNames.map(name => {
+            const agent = DataStore.agents.find(a => a.name === name);
+            const status = agent?.status || 'unknown';
+            const color = statusColor[status] || statusColor.unknown;
+            const projectTasks = project.tasks.filter(t => t.assignee === name);
+            const activeTasks = projectTasks.filter(t => t.status === 'in_progress');
+            const doneTasks = projectTasks.filter(t => t.status === 'done');
+            const currentTask = activeTasks[0] || projectTasks.find(t => t.status !== 'done');
+
+            return `
+                <div class="agent-assignment-item">
+                    <div class="agent-assignment-header">
+                        <div class="agent-assignment-name">
+                            <span class="agent-dot" style="background: ${color}"></span>
+                            ${this.escapeHtml(name)}
+                        </div>
+                        <span class="agent-status ${status}">${status}</span>
+                    </div>
+                    <div class="agent-assignment-tasks">
+                        ${currentTask
+                            ? `<span>Working on: <strong>${this.escapeHtml(currentTask.title)}</strong> <span style="color:var(--text-muted)">(${this.formatStatus(currentTask.status)})</span></span>`
+                            : `<span>All tasks complete</span>`}
+                        <span style="margin-left:auto">${doneTasks.length}/${projectTasks.length} done</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    },
+
+    // ===================
     // Project Notes
     // ===================
-    
+
     renderProjectNotes(project) {
         const container = document.getElementById('detail-notes');
         const notesCount = document.getElementById('detail-notes-count');
