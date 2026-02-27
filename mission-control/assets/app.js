@@ -264,7 +264,7 @@ const App = {
                     <div class="activity-icon ${iconClass}">${icon}</div>
                     <div class="activity-content">
                         <div class="activity-text">${this.formatActivity(activity)}</div>
-                        <div class="activity-time">${this.formatTime(activity.timestamp)}</div>
+                        <div class="activity-time">${this.formatTime(activity.createdAt || activity.timestamp)}</div>
                     </div>
                 </div>
             `;
@@ -1078,7 +1078,7 @@ const App = {
     },
     
     formatActivity(activity) {
-        return activity.details;
+        return activity.description || activity.details || '';
     }
 };
 
