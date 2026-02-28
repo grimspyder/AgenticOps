@@ -597,10 +597,10 @@ fastify.post('/api/dispatch/atlas', async (request, reply) => {
       `Use mc-report to track progress on this task.`
     ].join('\n');
 
-    // Send to Atlas via OpenClaw
+    // Send to Atlas via OpenClaw — deliver reply back to Grim via Telegram
     const { stdout, stderr } = await execAsync(
-      `openclaw agent --agent main --message ${JSON.stringify(message)}`,
-      { timeout: 30000 }
+      `openclaw agent --agent main --channel telegram --deliver --message ${JSON.stringify(message)}`,
+      { timeout: 60000 }
     );
 
     // Mark task as assigned/dispatched in DB
