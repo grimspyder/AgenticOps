@@ -152,11 +152,7 @@ const App = {
     
     render() {
         this.renderStats();
-        this.renderProjects();
-        this.renderAgents();
-        this.renderActivity();
-        this.renderTaskAssignment();
-        this.renderLiveTracking();
+        this.showView(this.currentView);
     },
     
     renderStats() {
@@ -168,16 +164,221 @@ const App = {
         document.getElementById('stat-issues').textContent = stats.issues?.unresolved || 0;
     },
     
-    renderProjects() {
+    // ===================
+    // View Switching
+    // ===================
+
+    showView(view) {
+        this.currentView = view;
+
+        const all = ['section-projects', 'section-agents', 'section-activity',
+                     'section-assignments', 'section-live',
+                     'view-all-tasks', 'view-kanban', 'view-timeline'];
+        all.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.style.display = 'none';
+        });
+
+        // Update active nav item
+        document.querySelectorAll('.nav-item[data-view]').forEach(item => {
+            item.classList.toggle('active', item.dataset.view === view);
+        });
+
+        const show = (...ids) => ids.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.style.display = '';
+        });
+
+        switch (view) {
+            case 'dashboard':
+                show('section-projects', 'section-agents', 'section-activity');
+                document.getElementById('section-projects-title').textContent = 'Projects';
+                document.getElementById('section-agents-title').textContent = 'Agents';
+                document.getElementById('projects-grid').className = 'projects-grid';
+                this.renderProjects('grid');
+                this.renderAgents();
+                this.renderActivity();
+                break;
+
+            case 'all-tasks':
+                show('view-all-tasks');
+                this.renderAllTasks();
+                break;
+
+            case 'active-agents':
+                show('section-agents');
+                document.getElementById('section-agents-title').textContent = 'Active Agents';
+                this.renderAgents('active');
+                break;
+
+            case 'grid':
+            case 'all-projects':
+                show('section-projects');
+                document.getElementById('section-projects-title').textContent = 'All Projects';
+                document.getElementById('projects-grid').className = 'projects-grid';
+                this.renderProjects('grid');
+                break;
+
+            case 'list':
+                show('section-projects');
+                document.getElementById('section-projects-title').textContent = 'Projects — List View';
+                document.getElementById('projects-grid').className = '';
+                this.renderProjects('list');
+                break;
+
+            case 'kanban':
+                show('view-kanban');
+                this.renderKanban();
+                break;
+
+            case 'timeline':
+                show('view-timeline');
+                this.renderTimeline();
+                break;
+        }
+    },
+
+    renderAllTasks() {
+        const allTasks = DataStore.projects.flatMap(p =>
+            (p.tasks || []).map(t => ({ ...t, projectName: p.name }))
+        );
+        const statusOrder = { in_progress: 0, blocked: 1, todo: 2, pending: 2, assigned: 2, done: 3 };
+        allTasks.sort((a, b) => (statusOrder[a.status] ?? 4) - (statusOrder[b.status] ?? 4));
+
+        document.getElementById('view-all-tasks-count').textContent = allTasks.length + ' tasks';
+        document.getElementById('all-tasks-content').innerHTML = `
+            <table class="tasks-table">
+                <thead>
+                    <tr>
+                        <th>Task</th>
+                        <th>Project</th>
+                        <th>Status</th>
+                        <th>Assignee</th>
+                        <th>Priority</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${allTasks.map(t => `
+                        <tr>
+                            <td>${this.escapeHtml(t.title)}</td>
+                            <td class="task-project">${this.escapeHtml(t.projectName || '')}</td>
+                            <td><span class="task-status status-${t.status}">${this.formatStatus(t.status)}</span></td>
+                            <td style="color:var(--text-muted)">${this.escapeHtml(t.assignee || '—')}</td>
+                            <td><span class="priority-badge priority-${t.priority || 'medium'}">${t.priority || 'medium'}</span></td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>`;
+    },
+
+    renderKanban() {
+        const allTasks = DataStore.projects.flatMap(p =>
+            (p.tasks || []).map(t => ({ ...t, projectName: p.name }))
+        );
+        const cols = {
+            todo:        { label: 'To Do',      color: 'var(--text-muted)',    tasks: [] },
+            in_progress: { label: 'In Progress', color: 'var(--accent-blue)',   tasks: [] },
+            done:        { label: 'Done',        color: 'var(--accent-green)',  tasks: [] },
+            blocked:     { label: 'Blocked',     color: 'var(--accent-red)',    tasks: [] },
+        };
+        for (const t of allTasks) {
+            const key = (t.status === 'pending' || t.status === 'assigned') ? 'todo' : (cols[t.status] ? t.status : 'todo');
+            cols[key].tasks.push(t);
+        }
+        document.getElementById('kanban-content').innerHTML = `
+            <div class="kanban-board">
+                ${Object.entries(cols).map(([key, col]) => `
+                    <div class="kanban-col">
+                        <div class="kanban-col-header" style="color:${col.color}">
+                            ${col.label}
+                            <span class="kanban-col-count">${col.tasks.length}</span>
+                        </div>
+                        ${col.tasks.length === 0
+                            ? '<div class="kanban-empty">No tasks</div>'
+                            : col.tasks.map(t => `
+                                <div class="kanban-task">
+                                    <div class="kanban-task-title">${this.escapeHtml(t.title)}</div>
+                                    <div class="kanban-task-meta">
+                                        <span>${this.escapeHtml(t.projectName || '')}</span>
+                                        ${t.assignee ? `<span>→ ${this.escapeHtml(t.assignee)}</span>` : ''}
+                                    </div>
+                                </div>`).join('')}
+                    </div>`).join('')}
+            </div>`;
+    },
+
+    renderTimeline() {
+        const allTasks = DataStore.projects.flatMap(p =>
+            (p.tasks || []).map(t => ({ ...t, projectName: p.name }))
+        );
+        allTasks.sort((a, b) => new Date(a.dueDate || a.createdAt) - new Date(b.dueDate || b.createdAt));
+        document.getElementById('timeline-content').innerHTML = `
+            <div class="timeline-list">
+                ${allTasks.map(t => {
+                    const dateStr = t.dueDate
+                        ? new Date(t.dueDate).toLocaleDateString()
+                        : new Date(t.createdAt).toLocaleDateString() + ' (created)';
+                    return `
+                        <div class="timeline-item status-${t.status}">
+                            <div class="timeline-date">${dateStr}</div>
+                            <div>
+                                <div class="timeline-task-title">${this.escapeHtml(t.title)}</div>
+                                <div class="timeline-task-project">${this.escapeHtml(t.projectName || '')} · ${this.escapeHtml(t.assignee || 'unassigned')}</div>
+                            </div>
+                            <span class="task-status status-${t.status}">${this.formatStatus(t.status)}</span>
+                        </div>`;
+                }).join('')}
+            </div>`;
+    },
+
+    renderProjects(mode = 'grid') {
         const container = document.getElementById('projects-grid');
         const projects = DataStore.getAllProjects();
-        
+
+        if (mode === 'list') {
+            container.innerHTML = `
+                <table class="projects-list-table">
+                    <thead>
+                        <tr>
+                            <th>Project</th>
+                            <th>Status</th>
+                            <th>Progress</th>
+                            <th>Tasks</th>
+                            <th>Owner</th>
+                            <th>Target Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${projects.map(p => {
+                            const done = p.tasks.filter(t => t.status === 'done').length;
+                            return `
+                            <tr onclick="App.openProjectDetail('${p.id}')">
+                                <td>
+                                    <div style="font-weight:500">${this.escapeHtml(p.name)}</div>
+                                    <div style="color:var(--text-muted);font-size:12px">${this.escapeHtml(p.description || '')}</div>
+                                </td>
+                                <td><span class="project-status status-${p.status}">${this.formatStatus(p.status)}</span></td>
+                                <td>
+                                    <div class="progress-bar" style="display:inline-block;width:80px;height:4px;vertical-align:middle;margin-right:6px"><div class="progress-fill" style="width:${p.progress}%"></div></div>
+                                    ${p.progress}%
+                                </td>
+                                <td style="color:var(--text-muted)">${done}/${p.tasks.length} done</td>
+                                <td style="color:var(--text-muted)">${this.escapeHtml(p.owner || '—')}</td>
+                                <td style="color:var(--text-muted)">${p.targetEndDate || '—'}</td>
+                            </tr>`;
+                        }).join('')}
+                    </tbody>
+                </table>`;
+            return;
+        }
+
+        container.className = 'projects-grid';
         container.innerHTML = projects.map(project => {
             const taskCount = project.tasks.length;
             const doneCount = project.tasks.filter(t => t.status === 'done').length;
             const agentCount = [...new Set(project.tasks.map(t => t.assignee).filter(a => a))].length;
             const issueCount = project.tasks.filter(t => t.status === 'blocked').length;
-            
+
             return `
                 <div class="project-card" onclick="App.openProjectDetail('${project.id}')">
                     <div class="project-header">
@@ -206,9 +407,11 @@ const App = {
         }).join('');
     },
     
-    renderAgents() {
+    renderAgents(filter = 'all') {
         const container = document.getElementById('agents-grid');
-        const agents = DataStore.agents;
+        const agents = filter === 'active'
+            ? DataStore.agents.filter(a => a.status === 'active')
+            : DataStore.agents;
 
         // Build task lookup from all projects
         const allTasks = DataStore.projects.flatMap(p => (p.tasks || []).map(t => ({ ...t, projectName: p.name })));
@@ -1047,10 +1250,9 @@ const App = {
         });
         
         // Nav items
-        document.querySelectorAll('.nav-item').forEach(item => {
-            item.addEventListener('click', function() {
-                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-                this.classList.add('active');
+        document.querySelectorAll('.nav-item[data-view]').forEach(item => {
+            item.addEventListener('click', () => {
+                App.showView(item.dataset.view);
             });
         });
     },

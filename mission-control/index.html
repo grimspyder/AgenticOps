@@ -789,6 +789,143 @@
         }
 
         /* ===================
+           View: All Tasks
+           =================== */
+        .tasks-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .tasks-table th {
+            text-align: left;
+            padding: 8px 12px;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+        .tasks-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+        .tasks-table tr:hover td { background: var(--bg-secondary); }
+        .tasks-table .task-project { color: var(--text-muted); font-size: 12px; }
+
+        /* ===================
+           View: Kanban
+           =================== */
+        .kanban-board {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            align-items: start;
+        }
+        .kanban-col {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 14px;
+            border: 1px solid var(--border);
+        }
+        .kanban-col-header {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .kanban-col-count {
+            background: var(--bg-tertiary);
+            border-radius: 10px;
+            padding: 2px 7px;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+        .kanban-task {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: border-color 0.15s;
+        }
+        .kanban-task:last-child { margin-bottom: 0; }
+        .kanban-task:hover { border-color: var(--accent-blue); }
+        .kanban-task-title { font-size: 13px; line-height: 1.4; margin-bottom: 6px; }
+        .kanban-task-meta { font-size: 11px; color: var(--text-muted); display: flex; gap: 8px; flex-wrap: wrap; }
+        .kanban-empty { color: var(--text-muted); font-size: 12px; text-align: center; padding: 20px 0; }
+
+        /* ===================
+           View: Timeline
+           =================== */
+        .timeline-list { display: flex; flex-direction: column; gap: 6px; }
+        .timeline-item {
+            display: grid;
+            grid-template-columns: 130px 1fr auto;
+            gap: 16px;
+            align-items: center;
+            padding: 12px 16px;
+            background: var(--bg-secondary);
+            border-radius: 6px;
+            border-left: 3px solid var(--border);
+            font-size: 13px;
+        }
+        .timeline-item.status-in_progress { border-left-color: var(--accent-blue); }
+        .timeline-item.status-done { border-left-color: var(--accent-green); }
+        .timeline-item.status-blocked { border-left-color: var(--accent-red); }
+        .timeline-item.status-todo, .timeline-item.status-pending { border-left-color: var(--text-muted); }
+        .timeline-date { font-size: 11px; color: var(--text-muted); }
+        .timeline-task-title { font-weight: 500; }
+        .timeline-task-project { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+        /* ===================
+           View: Projects List
+           =================== */
+        .projects-list-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .projects-list-table th {
+            text-align: left;
+            padding: 8px 12px;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+        .projects-list-table td {
+            padding: 11px 12px;
+            border-bottom: 1px solid var(--bg-tertiary);
+            cursor: pointer;
+        }
+        .projects-list-table tr:hover td { background: var(--bg-secondary); }
+        .projects-list-table .progress-bar {
+            width: 80px;
+            height: 4px;
+            background: var(--bg-tertiary);
+            border-radius: 2px;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 6px;
+        }
+        .projects-list-table .progress-fill {
+            height: 100%;
+            background: var(--accent-blue);
+            border-radius: 2px;
+        }
+
+        /* ===================
            Notes Section
            =================== */
         .agents-assignment-list {
@@ -1474,15 +1611,15 @@
         <aside class="sidebar">
             <div class="sidebar-section">
                 <div class="sidebar-title">Overview</div>
-                <div class="nav-item active">
+                <div class="nav-item active" data-view="dashboard">
                     <span class="nav-item-icon">◉</span>
                     Dashboard
                 </div>
-                <div class="nav-item">
+                <div class="nav-item" data-view="all-tasks">
                     <span class="nav-item-icon">◫</span>
                     All Tasks
                 </div>
-                <div class="nav-item">
+                <div class="nav-item" data-view="active-agents">
                     <span class="nav-item-icon">⚡</span>
                     Active Agents
                 </div>
@@ -1490,19 +1627,19 @@
 
             <div class="sidebar-section">
                 <div class="sidebar-title">Views</div>
-                <div class="nav-item">
+                <div class="nav-item" data-view="grid">
                     <span class="nav-item-icon">▦</span>
                     Grid View
                 </div>
-                <div class="nav-item">
+                <div class="nav-item" data-view="list">
                     <span class="nav-item-icon">☰</span>
                     List View
                 </div>
-                <div class="nav-item">
+                <div class="nav-item" data-view="kanban">
                     <span class="nav-item-icon">▣</span>
                     Kanban Board
                 </div>
-                <div class="nav-item">
+                <div class="nav-item" data-view="timeline">
                     <span class="nav-item-icon">⧗</span>
                     Timeline
                 </div>
@@ -1510,7 +1647,7 @@
 
             <div class="sidebar-section">
                 <div class="sidebar-title">Projects</div>
-                <div class="nav-item" onclick="App.renderProjects()">
+                <div class="nav-item" data-view="all-projects">
                     <span class="nav-item-icon">▸</span>
                     All Projects
                 </div>
@@ -1543,52 +1680,78 @@
                 </div>
             </div>
 
-            <!-- Projects Section -->
-            <div class="section-header">
-                <h2 class="section-title">Projects</h2>
-                <button class="btn" onclick="App.openNewProjectModal()">+ Add Project</button>
+            <!-- Section: Projects -->
+            <div id="section-projects">
+                <div class="section-header">
+                    <h2 class="section-title" id="section-projects-title">Projects</h2>
+                    <button class="btn" onclick="App.openNewProjectModal()">+ Add Project</button>
+                </div>
+                <div id="projects-grid">
+                    <!-- Projects rendered by JS -->
+                </div>
             </div>
 
-            <div class="projects-grid" id="projects-grid">
-                <!-- Projects rendered by JS -->
+            <!-- Section: Agents -->
+            <div id="section-agents">
+                <div class="section-header">
+                    <h2 class="section-title" id="section-agents-title">Agents</h2>
+                </div>
+                <div class="agents-grid" id="agents-grid">
+                    <!-- Agents rendered by JS -->
+                </div>
             </div>
 
-            <!-- Agents Section -->
-            <div class="section-header">
-                <h2 class="section-title">Active Agents</h2>
+            <!-- Section: Activity -->
+            <div id="section-activity">
+                <div class="section-header" style="margin-top: 32px;">
+                    <h2 class="section-title">Recent Activity</h2>
+                </div>
+                <div class="activity-feed" id="activity-feed">
+                    <!-- Activity rendered by JS -->
+                </div>
             </div>
 
-            <div class="agents-grid" id="agents-grid">
-                <!-- Agents rendered by JS -->
+            <!-- Section: Task Assignments -->
+            <div id="section-assignments" style="display:none">
+                <div class="section-header" style="margin-top: 32px;">
+                    <h2 class="section-title">Task Assignments</h2>
+                    <button class="btn btn-primary" onclick="App.openTaskAssignmentModal()">+ Assign Task</button>
+                </div>
+                <div class="task-assignment-grid" id="task-assignment-grid"></div>
             </div>
 
-            <!-- Recent Activity -->
-            <div class="section-header" style="margin-top: 32px;">
-                <h2 class="section-title">Recent Activity</h2>
+            <!-- Section: Live Tracking -->
+            <div id="section-live" style="display:none">
+                <div class="section-header" style="margin-top: 32px;">
+                    <h2 class="section-title">Live Agent Tracking</h2>
+                    <span class="live-indicator">● Live</span>
+                </div>
+                <div class="live-tracking-grid" id="live-tracking-grid"></div>
             </div>
 
-            <div class="activity-feed" id="activity-feed">
-                <!-- Activity rendered by JS -->
+            <!-- View: All Tasks -->
+            <div id="view-all-tasks" style="display:none">
+                <div class="section-header">
+                    <h2 class="section-title">All Tasks</h2>
+                    <span id="view-all-tasks-count" style="color:var(--text-muted);font-size:13px;"></span>
+                </div>
+                <div id="all-tasks-content"></div>
             </div>
 
-            <!-- Task Assignment Hierarchy -->
-            <div class="section-header" style="margin-top: 32px;">
-                <h2 class="section-title">Task Assignments</h2>
-                <button class="btn btn-primary" onclick="App.openTaskAssignmentModal()">+ Assign Task</button>
+            <!-- View: Kanban -->
+            <div id="view-kanban" style="display:none">
+                <div class="section-header">
+                    <h2 class="section-title">Kanban Board</h2>
+                </div>
+                <div id="kanban-content"></div>
             </div>
 
-            <div class="task-assignment-grid" id="task-assignment-grid">
-                <!-- Task assignments rendered by JS -->
-            </div>
-
-            <!-- Live Agent Tracking -->
-            <div class="section-header" style="margin-top: 32px;">
-                <h2 class="section-title">Live Agent Tracking</h2>
-                <span class="live-indicator">● Live</span>
-            </div>
-
-            <div class="live-tracking-grid" id="live-tracking-grid">
-                <!-- Live tracking rendered by JS -->
+            <!-- View: Timeline -->
+            <div id="view-timeline" style="display:none">
+                <div class="section-header">
+                    <h2 class="section-title">Timeline</h2>
+                </div>
+                <div id="timeline-content"></div>
             </div>
         </main>
     </div>
@@ -1892,12 +2055,12 @@
       };
     </script>
     <!-- API Client for backend communication -->
-    <script src="assets/api-client.js?v=10"></script>
+    <script src="assets/api-client.js?v=11"></script>
     <!-- Data layer using API (replaces localStorage DataStore) -->
-    <script src="assets/data-api.js?v=10"></script>
+    <script src="assets/data-api.js?v=11"></script>
     <!-- WebSocket client for real-time updates -->
-    <script src="assets/websocket-client.js?v=10"></script>
+    <script src="assets/websocket-client.js?v=11"></script>
     <!-- Main app controller -->
-    <script src="assets/app.js?v=10"></script>
+    <script src="assets/app.js?v=11"></script>
 </body>
 </html>
