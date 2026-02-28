@@ -559,6 +559,75 @@ fastify.post('/api/agents/report', async (request, reply) => {
   }
 });
 
+// ===================
+// Dispatch to Atlas — sends task to Atlas via OpenClaw
+// ===================
+
+fastify.post('/api/dispatch/atlas', async (request, reply) => {
+  try {
+    const { taskId } = request.body;
+    if (!taskId) {
+      reply.code(400);
+      return { error: 'taskId required' };
+    }
+
+    const task = await prisma.task.findUnique({
+      where: { id: taskId },
+      include: { project: true }
+    });
+    if (!task) {
+      reply.code(404);
+      return { error: 'Task not found' };
+    }
+
+    // Build structured message for Atlas per AGENTS.md Section 7.2
+    const dueStr = task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'Not set';
+    const message = [
+      `New task dispatched from Mission Control:`,
+      ``,
+      `MISSION_CONTROL_TASK_ID: ${task.id}`,
+      `PROJECT: ${task.project.name}`,
+      `TASK: ${task.title}`,
+      `DESCRIPTION: ${task.description || 'No description provided'}`,
+      `PRIORITY: ${task.priority || 'medium'}`,
+      `DUE DATE: ${dueStr}`,
+      `CURRENT ASSIGNEE: ${task.assignee || 'Unassigned'}`,
+      ``,
+      `Apply the command cycle: RECEIVE → UNDERSTAND INTENT → ASSESS → PLAN → DELEGATE → MONITOR → REPORT`,
+      `Use mc-report to track progress on this task.`
+    ].join('\n');
+
+    // Send to Atlas via OpenClaw
+    const { stdout, stderr } = await execAsync(
+      `openclaw agent --agent main --message ${JSON.stringify(message)}`,
+      { timeout: 30000 }
+    );
+
+    // Mark task as assigned/dispatched in DB
+    await prisma.task.update({
+      where: { id: taskId },
+      data: { assignee: task.assignee || 'ATLAS', status: task.status === 'pending' ? 'assigned' : task.status }
+    });
+
+    await prisma.activity.create({
+      data: {
+        projectId: task.projectId,
+        type: 'task',
+        action: 'dispatched',
+        description: `Task "${task.title}" dispatched to Atlas`
+      }
+    });
+
+    mcEvents.emit('task:updated', { taskId });
+
+    return { success: true, message: 'Dispatched to Atlas' };
+  } catch (error) {
+    console.error('Dispatch to Atlas failed:', error.message);
+    reply.code(500);
+    return { error: error.message };
+  }
+});
+
 // Task hierarchy routes
 fastify.get('/api/task-hierarchy', async (request, reply) => {
   try {

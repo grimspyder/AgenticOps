@@ -703,13 +703,14 @@ const App = {
     renderProjectTasks(project) {
         const container = document.getElementById('detail-tasks');
         const taskCount = document.getElementById('detail-task-count');
-        
+
         taskCount.textContent = `Tasks (${project.tasks.length})`;
-        
+
         container.innerHTML = project.tasks.map(task => {
             const priorityClass = `priority-${task.priority}`;
             const isChecked = task.status === 'done';
-            
+            const isDispatched = task.status === 'assigned' || task.status === 'in_progress' || task.status === 'done';
+
             return `
                 <div class="task-item" onclick="event.stopPropagation(); App.toggleTask('${project.id}', '${task.id}')">
                     <div class="task-checkbox ${isChecked ? 'checked' : ''}" onclick="event.stopPropagation(); App.toggleTask('${project.id}', '${task.id}')">
@@ -722,7 +723,14 @@ const App = {
                             <span>${this.formatStatus(task.status)}</span>
                         </div>
                     </div>
-                    <span class="task-priority ${priorityClass}">${task.priority}</span>
+                    <div class="task-actions" onclick="event.stopPropagation()">
+                        <span class="task-priority ${priorityClass}">${task.priority}</span>
+                        <button class="btn-dispatch ${isDispatched ? 'dispatched' : ''}"
+                            onclick="App.dispatchToAtlas('${task.id}', this)"
+                            title="${isDispatched ? 'Already dispatched' : 'Send to Atlas'}">
+                            ${isDispatched ? '⚡ Dispatched' : '⚡ Send to Atlas'}
+                        </button>
+                    </div>
                 </div>
             `;
         }).join('');
@@ -1286,6 +1294,38 @@ const App = {
         document.addEventListener('click', (e) => {
             if (!e.target.closest('.search-wrapper')) App.closeSearch();
         });
+    },
+
+    async dispatchToAtlas(taskId, btn) {
+        if (btn.classList.contains('dispatched') || btn.classList.contains('dispatching')) return;
+
+        btn.classList.add('dispatching');
+        btn.textContent = '⚡ Dispatching...';
+
+        try {
+            const res = await fetch(`${ApiClient.baseUrl}/dispatch/atlas`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ taskId })
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                btn.classList.remove('dispatching');
+                btn.classList.add('dispatched');
+                btn.textContent = '⚡ Dispatched';
+                this.showNotification('Task dispatched to Atlas', 'success');
+                this.scheduleReload();
+            } else {
+                btn.classList.remove('dispatching');
+                btn.textContent = '⚡ Send to Atlas';
+                this.showNotification(`Dispatch failed: ${data.error}`, 'error');
+            }
+        } catch (err) {
+            btn.classList.remove('dispatching');
+            btn.textContent = '⚡ Send to Atlas';
+            this.showNotification('Dispatch failed — check backend', 'error');
+        }
     },
 
     closeSearch() {

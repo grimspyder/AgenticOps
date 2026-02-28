@@ -125,6 +125,50 @@
             color: var(--text-muted);
         }
 
+        /* Send to Atlas button */
+        .task-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .btn-dispatch {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 5px;
+            border: 1px solid var(--accent-blue);
+            background: transparent;
+            color: var(--accent-blue);
+            cursor: pointer;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+
+        .btn-dispatch:hover {
+            background: var(--accent-blue);
+            color: #fff;
+        }
+
+        .btn-dispatch.dispatching {
+            opacity: 0.6;
+            cursor: default;
+            border-color: var(--text-muted);
+            color: var(--text-muted);
+        }
+
+        .btn-dispatch.dispatched {
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+            cursor: default;
+        }
+
+        .btn-dispatch.dispatched:hover {
+            background: transparent;
+            color: var(--accent-green);
+        }
+
         .search-wrapper {
             position: relative;
         }
@@ -2159,12 +2203,12 @@
       };
     </script>
     <!-- API Client for backend communication -->
-    <script src="assets/api-client.js?v=14"></script>
+    <script src="assets/api-client.js?v=15"></script>
     <!-- Data layer using API (replaces localStorage DataStore) -->
-    <script src="assets/data-api.js?v=14"></script>
+    <script src="assets/data-api.js?v=15"></script>
     <!-- WebSocket client for real-time updates -->
-    <script src="assets/websocket-client.js?v=14"></script>
+    <script src="assets/websocket-client.js?v=15"></script>
     <!-- Main app controller -->
-    <script src="assets/app.js?v=14"></script>
+    <script src="assets/app.js?v=15"></script>
 </body>
 </html>
