@@ -588,6 +588,42 @@ fastify.post('/api/agents/report', async (request, reply) => {
   }
 });
 
+// POST /api/tasks/:taskId/dispatch-verify — manually trigger Atlas verification
+fastify.post('/api/tasks/:taskId/dispatch-verify', async (request, reply) => {
+  try {
+    const { taskId } = request.params;
+    const task = await prisma.task.findUnique({
+      where: { id: taskId },
+      include: { project: true }
+    });
+    if (!task) { reply.code(404); return { error: 'Task not found' }; }
+
+    const verifyMsg = [
+      `Task completion verification needed:`,
+      ``,
+      `MISSION_CONTROL_TASK_ID: ${task.id}`,
+      `PROJECT: ${task.project.name}`,
+      `TASK: ${task.title}`,
+      `COMPLETED BY: ${task.assignee || 'Manual (dashboard)'}`,
+      ``,
+      `Please verify this task is truly complete. If satisfied, run:`,
+      `  mc-report task-verify ${task.id} ATLAS "Verified"`,
+      `If rework is needed:`,
+      `  mc-report task-reopen ${task.id} ATLAS "Reason for rework"`
+    ].join('\n');
+
+    execAsync(
+      `openclaw agent --agent main --channel telegram --deliver --message ${JSON.stringify(verifyMsg)}`,
+      { timeout: 60000 }
+    ).catch(err => console.error('Verification dispatch failed:', err.message));
+
+    return { success: true };
+  } catch (error) {
+    reply.code(500);
+    return { error: error.message };
+  }
+});
+
 // ===================
 // Project Complete / Reactivate
 // ===================

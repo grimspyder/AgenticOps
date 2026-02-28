@@ -283,6 +283,14 @@ const ApiClient = {
     return res.json();
   },
 
+  async dispatchVerification(taskId) {
+    const res = await fetch(`${API_BASE}/tasks/${taskId}/dispatch-verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    return res.json();
+  },
+
   async dispatchToAtlas(taskId) {
     const res = await fetch(`${API_BASE}/dispatch/atlas`, {
       method: 'POST',

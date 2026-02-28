@@ -986,6 +986,10 @@ const App = {
             if (this.selectedProject?.id === projectId) {
                 this.renderProjectTasks(DataStore.getProject(projectId));
             }
+            // Dispatch Atlas verification whenever a task is manually marked done
+            if (newStatus === 'done') {
+                ApiClient.dispatchVerification(taskId).catch(() => {});
+            }
         } catch (e) {
             // Revert on error
             task.status = newStatus === 'done' ? 'pending' : 'done';
