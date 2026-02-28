@@ -1346,7 +1346,7 @@ const App = {
             html += `<div class="search-result-section">
                 <div class="search-result-section-label">Agents</div>
                 ${matchedAgents.map(a => `
-                    <div class="search-result-item" onclick="App.closeSearch(); App.showView('all-agents')">
+                    <div class="search-result-item" onclick="App.closeSearch(); App.showView('active-agents')">
                         <span class="search-result-icon">⚡</span>
                         <div class="search-result-main">
                             <div class="search-result-title">${this.escapeHtml(a.name)}</div>

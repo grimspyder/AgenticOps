@@ -391,6 +391,12 @@
         .status-completed { background: rgba(88, 166, 255, 0.15); color: var(--accent-blue); }
         .status-on_hold { background: rgba(210, 153, 34, 0.15); color: var(--accent-yellow); }
         .status-blocked { background: rgba(248, 81, 73, 0.15); color: var(--accent-red); }
+        .status-done { background: rgba(88, 166, 255, 0.15); color: var(--accent-blue); }
+        .status-pending { background: rgba(139, 148, 158, 0.15); color: var(--text-secondary); }
+        .status-todo { background: rgba(139, 148, 158, 0.15); color: var(--text-secondary); }
+        .status-active { background: rgba(63, 185, 80, 0.15); color: var(--accent-green); }
+        .status-idle { background: rgba(139, 148, 158, 0.15); color: var(--text-secondary); }
+        .status-offline { background: rgba(248, 81, 73, 0.15); color: var(--accent-red); }
 
         .project-progress {
             margin: 16px 0;
@@ -2153,12 +2159,12 @@
       };
     </script>
     <!-- API Client for backend communication -->
-    <script src="assets/api-client.js?v=12"></script>
+    <script src="assets/api-client.js?v=13"></script>
     <!-- Data layer using API (replaces localStorage DataStore) -->
-    <script src="assets/data-api.js?v=12"></script>
+    <script src="assets/data-api.js?v=13"></script>
     <!-- WebSocket client for real-time updates -->
-    <script src="assets/websocket-client.js?v=12"></script>
+    <script src="assets/websocket-client.js?v=13"></script>
     <!-- Main app controller -->
-    <script src="assets/app.js?v=12"></script>
+    <script src="assets/app.js?v=13"></script>
 </body>
 </html>
