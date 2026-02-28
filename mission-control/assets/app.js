@@ -968,25 +968,29 @@ const App = {
     // Actions
     // ===================
     
-    toggleTask(projectId, taskId) {
+    async toggleTask(projectId, taskId) {
         const project = DataStore.getProject(projectId);
-        const task = project.tasks.find(t => t.id === taskId);
-        
-        if (task.status === 'done') {
-            DataStore.updateTask(projectId, taskId, { status: 'pending' });
-        } else {
-            DataStore.updateTask(projectId, taskId, { status: 'done' });
-            
-            // If assigned to agent, complete the task
-            const agent = DataStore.agents.find(a => a.currentTaskId === taskId);
-            if (agent) {
-                DataStore.completeAgentTask(agent.id);
+        const task = project?.tasks.find(t => t.id === taskId);
+        if (!task) return;
+
+        const newStatus = task.status === 'done' ? 'pending' : 'done';
+
+        // Optimistic update — instant visual feedback before API round-trip
+        task.status = newStatus;
+        if (newStatus !== 'done') task.verified = false;
+        this.renderProjectTasks(DataStore.getProject(projectId));
+
+        try {
+            await DataStore.updateTask(projectId, taskId, { status: newStatus });
+            // DataStore.load() already ran inside updateTask — re-render panel with fresh data
+            if (this.selectedProject?.id === projectId) {
+                this.renderProjectTasks(DataStore.getProject(projectId));
             }
-        }
-        
-        this.render();
-        if (this.selectedProject && this.selectedProject.id === projectId) {
-            this.openProjectDetail(projectId);
+        } catch (e) {
+            // Revert on error
+            task.status = newStatus === 'done' ? 'pending' : 'done';
+            this.renderProjectTasks(DataStore.getProject(projectId));
+            this.showNotification('Failed to update task', 'error');
         }
     },
     
