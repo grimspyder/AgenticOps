@@ -41,9 +41,29 @@ const App = {
     },
     
     // ===================
+    // Mobile Sidebar Drawer
+    // ===================
+
+    openSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        if (sidebar) sidebar.classList.add('open');
+        if (overlay) overlay.classList.add('open');
+        document.body.style.overflow = 'hidden'; // prevent background scroll
+    },
+
+    closeSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        if (sidebar) sidebar.classList.remove('open');
+        if (overlay) overlay.classList.remove('open');
+        document.body.style.overflow = '';
+    },
+
+    // ===================
     // OpenClaw Status
     // ===================
-    
+
     async checkOpenClawStatus() {
         const indicator = document.getElementById('oc-connection-indicator');
         if (!indicator) return;
@@ -758,7 +778,8 @@ const App = {
         // Render messages
         this.renderProjectMessages(project);
 
-        // Show panel
+        // Show panel (close mobile drawer first)
+        this.closeSidebar();
         document.getElementById('detailPanel').classList.add('open');
         document.getElementById('modalOverlay').classList.add('open');
     },
@@ -1371,10 +1392,21 @@ const App = {
             btn.addEventListener('click', () => this.closeProjectDetail());
         });
         
-        // Nav items
+        // Hamburger menu (mobile)
+        const hamburgerBtn = document.getElementById('hamburger-btn');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
+        if (hamburgerBtn) {
+            hamburgerBtn.addEventListener('click', () => App.openSidebar());
+        }
+        if (sidebarOverlay) {
+            sidebarOverlay.addEventListener('click', () => App.closeSidebar());
+        }
+
+        // Nav items — also close sidebar on mobile after navigation
         document.querySelectorAll('.nav-item[data-view]').forEach(item => {
             item.addEventListener('click', () => {
                 App.showView(item.dataset.view);
+                App.closeSidebar();
             });
         });
 

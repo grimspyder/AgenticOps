@@ -952,9 +952,79 @@
         }
 
         @media (max-width: 900px) {
-            .app { grid-template-columns: 1fr; }
-            .sidebar { display: none; }
-            .detail-panel { width: 100%; right: -100%; }
+            .app {
+                grid-template-columns: 1fr;
+                height: 100dvh;
+            }
+            /* Sidebar becomes a slide-in drawer */
+            .sidebar {
+                position: fixed;
+                left: -300px;
+                top: 0;
+                width: 280px;
+                height: 100%;
+                height: 100dvh;
+                z-index: 200;
+                transition: left 0.3s ease;
+                -webkit-overflow-scrolling: touch;
+                box-shadow: none;
+            }
+            .sidebar.open {
+                left: 0;
+                box-shadow: 4px 0 24px rgba(0, 0, 0, 0.5);
+            }
+            .hamburger-btn { display: flex; }
+            /* Detail panel full width on mobile */
+            .detail-panel {
+                width: 100%;
+                right: -100%;
+                height: 100%;
+                height: 100dvh;
+            }
+            /* Modal fits viewport */
+            .modal { width: min(500px, 92vw); }
+            /* Search results fit viewport */
+            .search-results { width: min(420px, calc(100vw - 24px)); }
+            /* Stats: 2 columns */
+            .stats-row { grid-template-columns: repeat(2, 1fr); }
+            /* Kanban: 2 columns */
+            .kanban-board { grid-template-columns: repeat(2, 1fr); }
+            /* Comms height */
+            .comms-container { height: calc(100dvh - 64px - 48px); }
+            /* Scrollable tables */
+            #view-all-tasks, #view-all-agents { overflow-x: auto; }
+            .tasks-table { min-width: 480px; }
+        }
+
+        @media (max-width: 600px) {
+            .header { padding: 0 12px; }
+            /* Hide search and status indicators to save header space */
+            .search-wrapper { display: none; }
+            #ws-connection-indicator,
+            #oc-connection-indicator { display: none; }
+            /* Hide logo text, keep icon */
+            .logo-text { display: none; }
+            /* Main content padding */
+            .main { padding: 16px 12px; }
+            /* Kanban: single column */
+            .kanban-board { grid-template-columns: 1fr; }
+            /* Forms: single column */
+            .form-row { grid-template-columns: 1fr; }
+            /* Timeline: stack */
+            .timeline-item {
+                grid-template-columns: 1fr;
+                gap: 6px;
+            }
+            .timeline-item > :last-child { justify-self: start; }
+            /* Detail panel padding */
+            .detail-content { padding: 16px; }
+            .detail-header { padding: 16px; }
+            .modal-body { padding: 16px; }
+            .modal-footer { padding: 12px 16px; }
+            /* Comms bubbles wider on small screen */
+            .comms-bubble { max-width: 88%; }
+            /* Stat cards smaller text */
+            .stat-value { font-size: 24px; }
         }
 
         /* ===================
@@ -1964,6 +2034,59 @@
             color: var(--text-muted);
             cursor: default;
         }
+
+        /* ===================
+           Hamburger Button (mobile nav trigger)
+           =================== */
+        .hamburger-btn {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            font-size: 20px;
+            cursor: pointer;
+            padding: 6px 10px;
+            border-radius: 6px;
+            align-items: center;
+            justify-content: center;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            flex-shrink: 0;
+            line-height: 1;
+        }
+        .hamburger-btn:hover { background: var(--bg-tertiary); }
+
+        /* ===================
+           Sidebar Overlay (mobile drawer backdrop)
+           =================== */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.55);
+            z-index: 199;
+        }
+        .sidebar-overlay.open { display: block; }
+
+        /* ===================
+           Touch tap improvements
+           =================== */
+        .nav-item,
+        .btn,
+        .project-card,
+        .task-item,
+        .kanban-task,
+        .detail-tab,
+        .message-action-btn {
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* ===================
+           Dynamic viewport height (accounts for mobile browser chrome)
+           =================== */
+        .app { height: 100dvh; }
+        .detail-panel { height: 100dvh; }
     </style>
 </head>
 <body>
@@ -1971,8 +2094,9 @@
         <!-- Header -->
         <header class="header">
             <div class="logo">
+                <button class="hamburger-btn" id="hamburger-btn" aria-label="Open navigation">☰</button>
                 <div class="logo-icon">◈</div>
-                <span>Mission Control</span>
+                <span class="logo-text">Mission Control</span>
             </div>
             <div class="search-wrapper">
                 <input type="text" class="search-box" id="search-input" placeholder="Search projects, tasks, agents..." autocomplete="off">
@@ -1985,8 +2109,11 @@
             </div>
         </header>
 
+        <!-- Sidebar overlay (mobile drawer backdrop) -->
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
         <!-- Sidebar -->
-        <aside class="sidebar">
+        <aside class="sidebar" id="sidebar">
             <div class="sidebar-section">
                 <div class="sidebar-title">Overview</div>
                 <div class="nav-item active" data-view="dashboard">
