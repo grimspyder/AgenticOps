@@ -1758,6 +1758,196 @@
             background: rgba(248, 81, 73, 0.15);
             color: var(--accent-red);
         }
+
+        /* Atlas Chat (Comms) */
+        .comms-container {
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 64px - 48px);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .comms-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 0 16px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 0;
+            flex-shrink: 0;
+        }
+
+        .comms-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 700;
+            color: #fff;
+            flex-shrink: 0;
+        }
+
+        .comms-name {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .comms-status {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .comms-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .comms-bubble {
+            max-width: 70%;
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 14px;
+            line-height: 1.5;
+            word-break: break-word;
+        }
+
+        .comms-bubble.user {
+            align-self: flex-end;
+            background: var(--accent-blue);
+            color: #fff;
+            border-bottom-right-radius: 4px;
+        }
+
+        .comms-bubble.atlas {
+            align-self: flex-start;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-bottom-left-radius: 4px;
+        }
+
+        .comms-bubble.atlas .comms-bubble-label {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            color: var(--accent-cyan);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .comms-bubble.error {
+            background: rgba(248, 81, 73, 0.15);
+            border-color: var(--accent-red);
+            color: var(--accent-red);
+        }
+
+        .comms-typing {
+            align-self: flex-start;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-bottom-left-radius: 4px;
+            padding: 10px 14px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .comms-typing span {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--text-muted);
+            animation: comms-bounce 1.2s infinite;
+        }
+
+        .comms-typing span:nth-child(2) { animation-delay: 0.2s; }
+        .comms-typing span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes comms-bounce {
+            0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+            30% { transform: translateY(-4px); opacity: 1; }
+        }
+
+        .comms-empty {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 12px;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .comms-empty-icon {
+            font-size: 40px;
+            opacity: 0.4;
+        }
+
+        .comms-input-area {
+            display: flex;
+            gap: 8px;
+            padding: 12px 0 4px;
+            border-top: 1px solid var(--border);
+            flex-shrink: 0;
+            align-items: flex-end;
+        }
+
+        .comms-input {
+            flex: 1;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: inherit;
+            resize: none;
+            max-height: 120px;
+            overflow-y: auto;
+            line-height: 1.5;
+        }
+
+        .comms-input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+        }
+
+        .comms-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .comms-send {
+            padding: 10px 18px;
+            background: var(--accent-blue);
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s;
+            flex-shrink: 0;
+        }
+
+        .comms-send:hover:not(:disabled) {
+            background: #4393e6;
+        }
+
+        .comms-send:disabled {
+            background: var(--bg-tertiary);
+            color: var(--text-muted);
+            cursor: default;
+        }
     </style>
 </head>
 <body>
@@ -1822,6 +2012,14 @@
                 <div class="nav-item" data-view="all-projects">
                     <span class="nav-item-icon">▸</span>
                     All Projects
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-title">Communications</div>
+                <div class="nav-item" data-view="comms">
+                    <span class="nav-item-icon">◎</span>
+                    Atlas Chat
                 </div>
             </div>
         </aside>
@@ -1924,6 +2122,24 @@
                     <h2 class="section-title">Timeline</h2>
                 </div>
                 <div id="timeline-content"></div>
+            </div>
+
+            <!-- View: Atlas Chat -->
+            <div id="view-comms" style="display:none">
+                <div class="comms-container">
+                    <div class="comms-header">
+                        <div class="comms-avatar">A</div>
+                        <div>
+                            <div class="comms-name">Atlas</div>
+                            <div class="comms-status" id="comms-status">Ready</div>
+                        </div>
+                    </div>
+                    <div class="comms-messages" id="comms-messages"></div>
+                    <div class="comms-input-area">
+                        <textarea class="comms-input" id="comms-input" placeholder="Message Atlas..." rows="1"></textarea>
+                        <button class="comms-send" id="comms-send" onclick="App.sendCommMessage()">Send</button>
+                    </div>
+                </div>
             </div>
         </main>
     </div>

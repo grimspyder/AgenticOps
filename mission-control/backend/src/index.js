@@ -625,6 +625,101 @@ fastify.post('/api/tasks/:taskId/dispatch-verify', async (request, reply) => {
 });
 
 // ===================
+// Atlas Chat (Comms)
+// ===================
+
+fastify.get('/api/comms/messages', async (request, reply) => {
+  try {
+    const messages = await prisma.commMessage.findMany({
+      orderBy: { createdAt: 'asc' }
+    });
+    return messages;
+  } catch (error) {
+    reply.code(500);
+    return { error: error.message };
+  }
+});
+
+fastify.post('/api/comms/message', async (request, reply) => {
+  try {
+    const { content } = request.body;
+    if (!content || !content.trim()) {
+      reply.code(400);
+      return { error: 'content is required' };
+    }
+
+    const userMessage = await prisma.commMessage.create({
+      data: { role: 'user', content: content.trim(), status: 'done' }
+    });
+
+    const pendingAtlas = await prisma.commMessage.create({
+      data: { role: 'atlas', content: '', status: 'pending' }
+    });
+
+    mcEvents.emit('comms:message:user', userMessage);
+
+    // Build context: pull live projects + tasks so Atlas knows the MC dashboard state
+    const projects = await prisma.project.findMany({
+      include: { tasks: true },
+      orderBy: { createdAt: 'asc' }
+    });
+
+    const projectSummary = projects.map(p => {
+      const tasks = p.tasks || [];
+      const open = tasks.filter(t => !['done', 'completed'].includes(t.status));
+      const done = tasks.filter(t => ['done', 'completed'].includes(t.status));
+      const lines = [
+        `  PROJECT: ${p.name} [${p.status}] ${p.progress}% complete`,
+        `  Tasks: ${tasks.length} total, ${open.length} open, ${done.length} done`
+      ];
+      if (open.length > 0) {
+        lines.push(`  Open tasks: ${open.map(t => `"${t.title}" (${t.status}${t.assignee ? ', assigned to ' + t.assignee : ''})`).join('; ')}`);
+      }
+      return lines.join('\n');
+    }).join('\n\n');
+
+    const contextualMessage = [
+      `[Mission Control Dashboard — Direct Chat]`,
+      ``,
+      `The user is speaking to you directly via the Mission Control Dashboard chat.`,
+      `All references to projects, tasks, and work below are referring to the following`,
+      `live project data from the Mission Control Dashboard:`,
+      ``,
+      projects.length > 0 ? projectSummary : `  (No projects currently in Mission Control)`,
+      ``,
+      `---`,
+      `USER MESSAGE: ${content.trim()}`
+    ].join('\n');
+
+    // Run Atlas async — no blocking
+    execAsync(`openclaw agent --agent main --message ${JSON.stringify(contextualMessage)}`, { timeout: 120000 })
+      .then(({ stdout }) => {
+        const response = stdout.trim() || '(no response)';
+        return prisma.commMessage.update({
+          where: { id: pendingAtlas.id },
+          data: { content: response, status: 'done' }
+        }).then(() => {
+          mcEvents.emit('comms:atlas:response', { id: pendingAtlas.id, content: response, status: 'done' });
+        });
+      })
+      .catch(err => {
+        const errMsg = 'Error: ' + err.message;
+        prisma.commMessage.update({
+          where: { id: pendingAtlas.id },
+          data: { content: errMsg, status: 'error' }
+        }).then(() => {
+          mcEvents.emit('comms:atlas:response', { id: pendingAtlas.id, content: 'Atlas could not respond.', status: 'error' });
+        }).catch(() => {});
+      });
+
+    return { userMessage, atlasMessageId: pendingAtlas.id };
+  } catch (error) {
+    reply.code(500);
+    return { error: error.message };
+  }
+});
+
+// ===================
 // Project Complete / Reactivate
 // ===================
 

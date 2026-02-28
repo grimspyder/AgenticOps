@@ -298,6 +298,24 @@ const ApiClient = {
       body: JSON.stringify({ taskId })
     });
     return { ok: res.ok, data: await res.json() };
+  },
+
+  // ===================
+  // Atlas Chat (Comms)
+  // ===================
+
+  async getCommMessages() {
+    const res = await fetch(`${API_BASE}/comms/messages`);
+    return res.json();
+  },
+
+  async sendCommMessage(content) {
+    const res = await fetch(`${API_BASE}/comms/message`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content })
+    });
+    return res.json();
   }
 };
 

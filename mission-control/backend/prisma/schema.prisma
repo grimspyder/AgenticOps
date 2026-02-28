@@ -178,3 +178,15 @@ model Activity {
   description String
   createdAt   DateTime @default(now())
 }
+
+// ===================
+// CommMessage Model (Atlas Chat)
+// ===================
+
+model CommMessage {
+  id        String   @id @default(uuid())
+  role      String   // "user" | "atlas"
+  content   String
+  status    String   @default("done") // "pending" | "done" | "error"
+  createdAt DateTime @default(now())
+}

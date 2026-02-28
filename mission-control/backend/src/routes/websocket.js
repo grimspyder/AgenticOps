@@ -230,6 +230,8 @@ export default async function websocketRoutes(fastify, options) {
   // Subscribe to REST-triggered events and broadcast to WebSocket clients
   mcEvents.on('task:updated', (data) => broadcast('task:updated', data));
   mcEvents.on('agent:updated', (data) => broadcast('agent:updated', data));
+  mcEvents.on('comms:message:user', (data) => broadcast('comms:message:user', data));
+  mcEvents.on('comms:atlas:response', (data) => broadcast('comms:atlas:response', data));
 
   // WebSocket endpoint
   fastify.get('/ws', { websocket: true }, (connection, req) => {

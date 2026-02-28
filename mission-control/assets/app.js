@@ -148,6 +148,16 @@ const App = {
             this.showNotification('Reconnecting to real-time updates...', 'warning');
         });
 
+        // Atlas chat response
+        WebSocketClient.on('comms:atlas:response', (data) => {
+            const typing = document.getElementById('comms-typing');
+            if (typing) {
+                typing.outerHTML = App.renderCommBubble('atlas', data.content, data.status);
+            }
+            App.scrollCommsToBottom();
+            App.enableCommsInput();
+        });
+
         // Single periodic refresh: sync data every 60s and check OpenClaw status
         setInterval(() => {
             this.checkOpenClawStatus();
@@ -185,7 +195,7 @@ const App = {
 
         const all = ['section-projects', 'section-agents', 'section-activity',
                      'section-assignments', 'section-live',
-                     'view-all-tasks', 'view-kanban', 'view-timeline'];
+                     'view-all-tasks', 'view-kanban', 'view-timeline', 'view-comms'];
         all.forEach(id => {
             const el = document.getElementById(id);
             if (el) el.style.display = 'none';
@@ -246,6 +256,11 @@ const App = {
             case 'timeline':
                 show('view-timeline');
                 this.renderTimeline();
+                break;
+
+            case 'comms':
+                show('view-comms');
+                this.renderComms();
                 break;
         }
     },
@@ -1341,6 +1356,15 @@ const App = {
         document.addEventListener('click', (e) => {
             if (!e.target.closest('.search-wrapper')) App.closeSearch();
         });
+
+        // Comms input: Enter to send (Shift+Enter for newline)
+        document.addEventListener('keydown', (e) => {
+            const input = document.getElementById('comms-input');
+            if (e.target === input && e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                App.sendCommMessage();
+            }
+        });
     },
 
     async dispatchToAtlas(taskId, btn) {
@@ -1549,6 +1573,111 @@ const App = {
     
     formatActivity(activity) {
         return activity.description || activity.details || '';
+    },
+
+    // ===================
+    // Atlas Chat (Comms)
+    // ===================
+
+    async renderComms() {
+        const container = document.getElementById('comms-messages');
+        if (!container) return;
+
+        try {
+            const messages = await ApiClient.getCommMessages();
+            if (!Array.isArray(messages) || messages.length === 0) {
+                container.innerHTML = `
+                    <div class="comms-empty">
+                        <div class="comms-empty-icon">◎</div>
+                        <div>No messages yet — say hello to Atlas</div>
+                    </div>`;
+            } else {
+                container.innerHTML = messages.map(m => this.renderCommBubble(m.role, m.content, m.status)).join('');
+            }
+        } catch (err) {
+            container.innerHTML = `<div class="comms-empty"><div>Failed to load messages</div></div>`;
+        }
+        this.scrollCommsToBottom();
+        const input = document.getElementById('comms-input');
+        if (input) input.focus();
+    },
+
+    renderCommBubble(role, content, status) {
+        if (role === 'user') {
+            return `<div class="comms-bubble user">${this._escapeHtml(content)}</div>`;
+        }
+        // atlas
+        const errorClass = status === 'error' ? ' error' : '';
+        return `<div class="comms-bubble atlas${errorClass}">
+            <div class="comms-bubble-label">ATLAS</div>
+            <div>${this._escapeHtml(content)}</div>
+        </div>`;
+    },
+
+    _escapeHtml(str) {
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/\n/g, '<br>');
+    },
+
+    scrollCommsToBottom() {
+        const container = document.getElementById('comms-messages');
+        if (container) container.scrollTop = container.scrollHeight;
+    },
+
+    enableCommsInput() {
+        const input = document.getElementById('comms-input');
+        const btn = document.getElementById('comms-send');
+        const status = document.getElementById('comms-status');
+        if (input) { input.disabled = false; input.focus(); }
+        if (btn) btn.disabled = false;
+        if (status) status.textContent = 'Ready';
+    },
+
+    async sendCommMessage() {
+        const input = document.getElementById('comms-input');
+        const btn = document.getElementById('comms-send');
+        const status = document.getElementById('comms-status');
+        const container = document.getElementById('comms-messages');
+        if (!input || !container) return;
+
+        const content = input.value.trim();
+        if (!content) return;
+
+        // Clear empty state
+        const empty = container.querySelector('.comms-empty');
+        if (empty) empty.remove();
+
+        // Optimistically append user bubble
+        container.insertAdjacentHTML('beforeend', this.renderCommBubble('user', content, 'done'));
+
+        // Append typing indicator
+        container.insertAdjacentHTML('beforeend', `
+            <div class="comms-typing" id="comms-typing">
+                <span></span><span></span><span></span>
+            </div>`);
+
+        this.scrollCommsToBottom();
+
+        // Disable input while waiting
+        input.value = '';
+        input.disabled = true;
+        if (btn) btn.disabled = true;
+        if (status) status.textContent = 'Atlas is thinking...';
+
+        try {
+            await ApiClient.sendCommMessage(content);
+            // Response comes via WebSocket — input re-enabled then
+        } catch (err) {
+            // If the API call itself fails, show error and re-enable
+            const typing = document.getElementById('comms-typing');
+            if (typing) typing.outerHTML = this.renderCommBubble('atlas', 'Failed to reach server.', 'error');
+            this.scrollCommsToBottom();
+            this.enableCommsInput();
+        }
     }
 };
 
