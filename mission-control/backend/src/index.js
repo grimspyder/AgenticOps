@@ -305,9 +305,12 @@ fastify.post('/api/projects/:projectId/messages', async (request, reply) => {
           orderBy: { createdAt: 'asc' },
           take: 10
         });
-        const thread = recentMessages.map(m =>
-          `  [${m.author}]: ${m.content}`
-        ).join('\n');
+        const thread = recentMessages.map(m => {
+          const lines = [`  [${m.author}]: ${m.content}`];
+          const replies = m.replies ? JSON.parse(m.replies) : [];
+          replies.forEach(r => lines.push(`    ↳ [${r.author}]: ${r.content}`));
+          return lines.join('\n');
+        }).join('\n');
 
         const contextMsg = [
           `[Mission Control — Discussion Board: ${project.name}]`,
@@ -411,6 +414,54 @@ fastify.post('/api/projects/:projectId/messages/:messageId/reply', async (reques
     });
 
     mcEvents.emit('message:new', { projectId, message: updated });
+
+    // Notify Atlas when a human replies — build full thread context
+    if (author !== 'ATLAS' && authorRole !== 'atlas') {
+      const project = await prisma.project.findUnique({
+        where: { id: projectId },
+        include: { tasks: true }
+      });
+      if (project) {
+        const threadLines = [
+          `  [${message.author}]: ${message.content}`,
+          ...existing.map(r => `    ↳ [${r.author}]: ${r.content}`)
+        ].join('\n');
+
+        const contextMsg = [
+          `[Mission Control — Discussion Reply: ${project.name}]`,
+          ``,
+          `A reply has been posted in the Discussion board for project "${project.name}" (${project.status}, ${project.progress}% complete).`,
+          ``,
+          `Thread:`,
+          threadLines,
+          ``,
+          `Open tasks: ${project.tasks.filter(t => !['done','completed'].includes(t.status)).map(t => `"${t.title}" (${t.status}${t.assignee ? ', ' + t.assignee : ''})`).join(', ') || 'none'}`,
+          ``,
+          `Please respond to the latest reply. Your response will be appended to this thread.`
+        ].join('\n');
+
+        execFileAsync('openclaw', ['agent', '--agent', 'main', '--message', contextMsg], { timeout: 120000 })
+          .then(({ stdout }) => {
+            const response = stdout.trim();
+            if (!response) return;
+            const withAtlas = [...existing, {
+              id: crypto.randomUUID(),
+              author: 'ATLAS',
+              authorRole: 'atlas',
+              content: response,
+              createdAt: new Date().toISOString()
+            }];
+            return prisma.message.update({
+              where: { id: messageId },
+              data: { replies: JSON.stringify(withAtlas) }
+            }).then(final => {
+              mcEvents.emit('message:new', { projectId, message: final });
+            });
+          })
+          .catch(err => console.error('Atlas reply response failed:', err.message));
+      }
+    }
+
     return updated;
   } catch (error) {
     reply.code(500);
