@@ -47,6 +47,14 @@ await fastify.register(fastifyStatic, {
   constraints: {}
 });
 
+// Prevent index.html from being cached by browsers
+fastify.addHook('onSend', async (request, reply, payload) => {
+  if (request.url === '/' || request.url === '/index.html') {
+    reply.header('Cache-Control', 'no-store');
+  }
+  return payload;
+});
+
 // Simple API key authentication (future-proofing)
 // In production, replace with proper JWT auth
 const API_KEY = process.env.API_KEY || 'dev-key-123'; // Change in production!
