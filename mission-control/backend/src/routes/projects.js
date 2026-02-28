@@ -11,8 +11,11 @@ export default async function projectsRoutes(fastify, options) {
         orderBy: { updatedAt: 'desc' },
         include: {
           tasks: true,
-          notes: true,
-          messages: true
+          notes: { orderBy: { createdAt: 'desc' } },
+          messages: {
+            where: { parentId: null },
+            orderBy: { createdAt: 'desc' }
+          }
         }
       });
       return projects;
@@ -31,7 +34,7 @@ export default async function projectsRoutes(fastify, options) {
         include: {
           tasks: true,
           notes: { orderBy: { createdAt: 'desc' } },
-          messages: { orderBy: { createdAt: 'desc' } },
+          messages: { where: { parentId: null }, orderBy: { createdAt: 'desc' } },
           activities: { orderBy: { createdAt: 'desc' }, take: 20 }
         }
       });

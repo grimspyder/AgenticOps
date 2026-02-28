@@ -1274,19 +1274,20 @@ const App = {
         document.getElementById('replyForm').reset();
     },
     
-    saveReply() {
+    async saveReply() {
         if (!this.selectedProject) return;
-        
+
         const messageId = document.getElementById('replyMessageId').value;
         const form = document.getElementById('replyForm');
         const formData = new FormData(form);
-        
-        DataStore.replyToMessage(this.selectedProject.id, messageId, {
-            author: formData.get('author'),
-            authorRole: 'agent',
+        const author = formData.get('author');
+
+        await DataStore.replyToMessage(this.selectedProject.id, messageId, {
+            author,
+            authorRole: author === 'Human' ? 'user' : 'agent',
             content: formData.get('content')
         });
-        
+
         this.closeReplyModal();
         this.openProjectDetail(this.selectedProject.id);
         this.render();

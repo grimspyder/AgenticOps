@@ -156,9 +156,13 @@ const DataStore = {
   },
   
   async replyToMessage(projectId, messageId, replyData) {
-    // Not directly supported by API - would need thread support
-    console.log('Reply to message not implemented in API');
-    return null;
+    const updated = await ApiClient.replyToMessage(projectId, messageId, {
+      author: replyData.author || 'Unknown',
+      authorRole: replyData.author === 'Human' ? 'user' : (replyData.authorRole || 'agent'),
+      content: replyData.content
+    });
+    await this.load();
+    return updated;
   },
   
   async upvoteMessage(projectId, messageId, voter) {

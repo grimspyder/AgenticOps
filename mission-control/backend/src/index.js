@@ -325,16 +325,20 @@ fastify.post('/api/projects/:projectId/messages', async (request, reply) => {
           .then(({ stdout }) => {
             const response = stdout.trim();
             if (!response) return;
-            return prisma.message.create({
-              data: {
-                projectId,
-                author: 'ATLAS',
-                authorRole: 'atlas',
-                content: response,
-                messageType: 'update'
-              }
-            }).then(atlasMsg => {
-              mcEvents.emit('message:new', { projectId, message: atlasMsg });
+            // Append Atlas reply to the original message's replies JSON field
+            const existing = message.replies ? JSON.parse(message.replies) : [];
+            existing.push({
+              id: crypto.randomUUID(),
+              author: 'ATLAS',
+              authorRole: 'atlas',
+              content: response,
+              createdAt: new Date().toISOString()
+            });
+            return prisma.message.update({
+              where: { id: message.id },
+              data: { replies: JSON.stringify(existing) }
+            }).then(updated => {
+              mcEvents.emit('message:new', { projectId, message: updated });
             });
           })
           .catch(err => console.error('Atlas message response failed:', err.message));
@@ -375,6 +379,36 @@ fastify.post('/api/projects/:projectId/messages/:messageId/upvote', async (reque
       data: { upvotes: JSON.stringify(upvotes) }
     });
     
+    return updated;
+  } catch (error) {
+    reply.code(500);
+    return { error: error.message };
+  }
+});
+
+fastify.post('/api/projects/:projectId/messages/:messageId/reply', async (request, reply) => {
+  try {
+    const { projectId, messageId } = request.params;
+    const { author, authorRole, content } = request.body;
+
+    const message = await prisma.message.findUnique({ where: { id: messageId } });
+    if (!message) { reply.code(404); return { error: 'Message not found' }; }
+
+    const existing = message.replies ? JSON.parse(message.replies) : [];
+    existing.push({
+      id: crypto.randomUUID(),
+      author: author || 'Unknown',
+      authorRole: authorRole || 'agent',
+      content,
+      createdAt: new Date().toISOString()
+    });
+
+    const updated = await prisma.message.update({
+      where: { id: messageId },
+      data: { replies: JSON.stringify(existing) }
+    });
+
+    mcEvents.emit('message:new', { projectId, message: updated });
     return updated;
   } catch (error) {
     reply.code(500);

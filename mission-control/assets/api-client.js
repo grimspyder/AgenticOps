@@ -235,6 +235,15 @@ const ApiClient = {
     return res.json();
   },
   
+  async replyToMessage(projectId, messageId, data) {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/messages/${messageId}/reply`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    return res.json();
+  },
+
   async deleteMessage(projectId, messageId) {
     const res = await fetch(`${API_BASE}/projects/${projectId}/messages/${messageId}`, {
       method: 'DELETE'
