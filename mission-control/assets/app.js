@@ -144,12 +144,6 @@ const App = {
             }
         }, 30000);
         
-        // Still simulate agent work for demo purposes (can be removed in production)
-        setInterval(() => {
-            DataStore.simulateAgentWork();
-            this.render();
-            this.renderTaskAssignment();
-        }, 5000);
     },
     
     // ===================

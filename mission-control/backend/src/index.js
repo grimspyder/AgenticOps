@@ -659,13 +659,19 @@ fastify.post('/api/openclaw/webhook', async (request, reply) => {
   }
 });
 
-// OpenClaw health check
+// OpenClaw health check — cached for 15s to avoid blocking the event loop
+let healthCache = { result: null, ts: 0 };
 fastify.get('/api/openclaw/health', async (request, reply) => {
+  const now = Date.now();
+  if (now - healthCache.ts < 15000) {
+    return healthCache.result;
+  }
   const isHealthy = await checkOpenClawHealth();
-  return { 
-    openclaw: isHealthy ? 'connected' : 'disconnected',
-    timestamp: new Date().toISOString()
+  healthCache = {
+    result: { openclaw: isHealthy ? 'connected' : 'disconnected', timestamp: new Date().toISOString() },
+    ts: now
   };
+  return healthCache.result;
 });
 
 // Assign task via OpenClaw
