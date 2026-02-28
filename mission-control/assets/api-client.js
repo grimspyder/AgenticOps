@@ -281,6 +281,15 @@ const ApiClient = {
       body: JSON.stringify({ taskId, agentName })
     });
     return res.json();
+  },
+
+  async dispatchToAtlas(taskId) {
+    const res = await fetch(`${API_BASE}/dispatch/atlas`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ taskId })
+    });
+    return { ok: res.ok, data: await res.json() };
   }
 };
 

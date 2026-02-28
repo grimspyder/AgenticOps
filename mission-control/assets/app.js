@@ -1303,14 +1303,9 @@ const App = {
         btn.textContent = '⚡ Dispatching...';
 
         try {
-            const res = await fetch(`${ApiClient.baseUrl}/dispatch/atlas`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ taskId })
-            });
-            const data = await res.json();
+            const { ok, data } = await ApiClient.dispatchToAtlas(taskId);
 
-            if (res.ok) {
+            if (ok) {
                 btn.classList.remove('dispatching');
                 btn.classList.add('dispatched');
                 btn.textContent = '⚡ Dispatched';
@@ -1319,7 +1314,7 @@ const App = {
             } else {
                 btn.classList.remove('dispatching');
                 btn.textContent = '⚡ Send to Atlas';
-                this.showNotification(`Dispatch failed: ${data.error}`, 'error');
+                this.showNotification(`Dispatch failed: ${data.error || 'Unknown error'}`, 'error');
             }
         } catch (err) {
             btn.classList.remove('dispatching');
