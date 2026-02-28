@@ -125,6 +125,30 @@
             color: var(--text-muted);
         }
 
+        /* Completed Projects */
+        .project-card-completed { opacity: 0.7; border-color: var(--accent-green); }
+        .project-card-actions { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+        .btn-complete-project {
+            font-size: 11px; padding: 3px 8px; border-radius: 4px;
+            border: 1px solid var(--text-muted); background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.15s;
+        }
+        .btn-complete-project:hover { border-color: var(--accent-green); color: var(--accent-green); }
+        .btn-reactivate {
+            font-size: 11px; padding: 3px 8px; border-radius: 4px;
+            border: 1px solid var(--accent-blue); background: transparent; color: var(--accent-blue); cursor: pointer; transition: all 0.15s;
+        }
+        .btn-reactivate:hover { background: var(--accent-blue); color: #fff; }
+        .completed-projects-divider {
+            grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; margin: 8px 0 4px;
+            color: var(--text-muted); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .completed-projects-divider::before, .completed-projects-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+        /* Task verification */
+        .task-verified .task-checkbox.verified { background: var(--accent-green); border-color: var(--accent-green); color: #fff; }
+        .task-verified-badge { font-size: 10px; color: var(--accent-green); font-weight: 600; }
+        .task-pending-verify { font-size: 10px; color: var(--accent-yellow); }
+
         /* Send to Atlas button */
         .task-actions {
             display: flex;
@@ -2203,12 +2227,12 @@
       };
     </script>
     <!-- API Client for backend communication -->
-    <script src="assets/api-client.js?v=16"></script>
+    <script src="assets/api-client.js?v=17"></script>
     <!-- Data layer using API (replaces localStorage DataStore) -->
-    <script src="assets/data-api.js?v=16"></script>
+    <script src="assets/data-api.js?v=17"></script>
     <!-- WebSocket client for real-time updates -->
-    <script src="assets/websocket-client.js?v=16"></script>
+    <script src="assets/websocket-client.js?v=17"></script>
     <!-- Main app controller -->
-    <script src="assets/app.js?v=16"></script>
+    <script src="assets/app.js?v=17"></script>
 </body>
 </html>

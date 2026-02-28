@@ -64,6 +64,9 @@ model Task {
   assignment    String?  // JSON string
   progress      Int      @default(0)
   completedAt   DateTime?
+  verified      Boolean  @default(false)
+  verifiedBy    String?
+  verifiedAt    DateTime?
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

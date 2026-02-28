@@ -345,57 +345,53 @@ const App = {
 
     renderProjects(mode = 'grid') {
         const container = document.getElementById('projects-grid');
-        const projects = DataStore.getAllProjects();
+        const all = DataStore.getAllProjects();
+        const active = all.filter(p => p.status !== 'completed');
+        const completed = all.filter(p => p.status === 'completed');
 
         if (mode === 'list') {
+            const rows = (arr) => arr.map(p => {
+                const done = p.tasks.filter(t => t.status === 'done').length;
+                const isCompleted = p.status === 'completed';
+                return `
+                <tr onclick="App.openProjectDetail('${p.id}')">
+                    <td>
+                        <div style="font-weight:500${isCompleted ? ';color:var(--text-muted);text-decoration:line-through' : ''}">${this.escapeHtml(p.name)}</div>
+                        <div style="color:var(--text-muted);font-size:12px">${this.escapeHtml(p.description || '')}</div>
+                    </td>
+                    <td><span class="project-status status-${p.status}">${this.formatStatus(p.status)}</span></td>
+                    <td>
+                        <div class="progress-bar" style="display:inline-block;width:80px;height:4px;vertical-align:middle;margin-right:6px"><div class="progress-fill" style="width:${p.progress}%"></div></div>
+                        ${p.progress}%
+                    </td>
+                    <td style="color:var(--text-muted)">${done}/${p.tasks.length} done</td>
+                    <td style="color:var(--text-muted)">${this.escapeHtml(p.owner || '—')}</td>
+                    <td style="color:var(--text-muted)">${p.targetEndDate || '—'}</td>
+                    <td onclick="event.stopPropagation()">
+                        ${isCompleted
+                            ? `<button class="btn-reactivate" onclick="App.reactivateProject('${p.id}')">Reactivate</button>`
+                            : `<button class="btn-complete-project" onclick="App.completeProject('${p.id}')">Mark Complete</button>`}
+                    </td>
+                </tr>`;
+            }).join('');
             container.innerHTML = `
                 <table class="projects-list-table">
-                    <thead>
-                        <tr>
-                            <th>Project</th>
-                            <th>Status</th>
-                            <th>Progress</th>
-                            <th>Tasks</th>
-                            <th>Owner</th>
-                            <th>Target Date</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${projects.map(p => {
-                            const done = p.tasks.filter(t => t.status === 'done').length;
-                            return `
-                            <tr onclick="App.openProjectDetail('${p.id}')">
-                                <td>
-                                    <div style="font-weight:500">${this.escapeHtml(p.name)}</div>
-                                    <div style="color:var(--text-muted);font-size:12px">${this.escapeHtml(p.description || '')}</div>
-                                </td>
-                                <td><span class="project-status status-${p.status}">${this.formatStatus(p.status)}</span></td>
-                                <td>
-                                    <div class="progress-bar" style="display:inline-block;width:80px;height:4px;vertical-align:middle;margin-right:6px"><div class="progress-fill" style="width:${p.progress}%"></div></div>
-                                    ${p.progress}%
-                                </td>
-                                <td style="color:var(--text-muted)">${done}/${p.tasks.length} done</td>
-                                <td style="color:var(--text-muted)">${this.escapeHtml(p.owner || '—')}</td>
-                                <td style="color:var(--text-muted)">${p.targetEndDate || '—'}</td>
-                            </tr>`;
-                        }).join('')}
-                    </tbody>
+                    <thead><tr><th>Project</th><th>Status</th><th>Progress</th><th>Tasks</th><th>Owner</th><th>Target Date</th><th></th></tr></thead>
+                    <tbody>${rows(active)}${completed.length ? rows(completed) : ''}</tbody>
                 </table>`;
             return;
         }
 
-        container.className = 'projects-grid';
-        container.innerHTML = projects.map(project => {
+        const cardHtml = (project, isCompleted) => {
             const taskCount = project.tasks.length;
             const doneCount = project.tasks.filter(t => t.status === 'done').length;
             const agentCount = [...new Set(project.tasks.map(t => t.assignee).filter(a => a))].length;
             const issueCount = project.tasks.filter(t => t.status === 'blocked').length;
-
             return `
-                <div class="project-card" onclick="App.openProjectDetail('${project.id}')">
+                <div class="project-card ${isCompleted ? 'project-card-completed' : ''}" onclick="App.openProjectDetail('${project.id}')">
                     <div class="project-header">
                         <div>
-                            <div class="project-name">${this.escapeHtml(project.name)}</div>
+                            <div class="project-name" style="${isCompleted ? 'text-decoration:line-through;color:var(--text-muted)' : ''}">${this.escapeHtml(project.name)}</div>
                             <div class="project-desc">${this.escapeHtml(project.description)}</div>
                         </div>
                         <span class="project-status status-${project.status}">${this.formatStatus(project.status)}</span>
@@ -414,9 +410,47 @@ const App = {
                         <div class="project-meta-item">🤖 ${agentCount} agents</div>
                         ${issueCount > 0 ? `<div class="project-meta-item">⚠️ ${issueCount} issues</div>` : ''}
                     </div>
+                    <div class="project-card-actions" onclick="event.stopPropagation()">
+                        ${isCompleted
+                            ? `<button class="btn-reactivate" onclick="App.reactivateProject('${project.id}')">Reactivate</button>`
+                            : `<button class="btn-complete-project" onclick="App.completeProject('${project.id}')">Mark Complete</button>`}
+                    </div>
+                </div>`;
+        };
+
+        container.className = 'projects-grid';
+        let html = active.map(p => cardHtml(p, false)).join('');
+
+        if (completed.length) {
+            html += `
+                <div class="completed-projects-divider">
+                    <span>Completed Projects (${completed.length})</span>
                 </div>
-            `;
-        }).join('');
+                ${completed.map(p => cardHtml(p, true)).join('')}`;
+        }
+
+        container.innerHTML = html;
+    },
+
+    async completeProject(projectId) {
+        if (!confirm('Mark this project as completed?')) return;
+        try {
+            const res = await fetch(`${window.ENV?.API_URL || 'http://100.101.241.21:3001/api'}/projects/${projectId}/complete`, { method: 'POST' });
+            if (res.ok) {
+                this.showNotification('Project marked complete', 'success');
+                this.scheduleReload();
+            }
+        } catch (e) { this.showNotification('Failed to complete project', 'error'); }
+    },
+
+    async reactivateProject(projectId) {
+        try {
+            const res = await fetch(`${window.ENV?.API_URL || 'http://100.101.241.21:3001/api'}/projects/${projectId}/reactivate`, { method: 'POST' });
+            if (res.ok) {
+                this.showNotification('Project reactivated', 'success');
+                this.scheduleReload();
+            }
+        } catch (e) { this.showNotification('Failed to reactivate project', 'error'); }
     },
     
     renderAgents(filter = 'all') {
@@ -711,16 +745,21 @@ const App = {
             const isChecked = task.status === 'done';
             const isDispatched = task.status === 'assigned' || task.status === 'in_progress' || task.status === 'done';
 
+            const isVerified = task.verified;
+            const isDoneUnverified = isChecked && !isVerified;
+
             return `
-                <div class="task-item" onclick="event.stopPropagation(); App.toggleTask('${project.id}', '${task.id}')">
-                    <div class="task-checkbox ${isChecked ? 'checked' : ''}" onclick="event.stopPropagation(); App.toggleTask('${project.id}', '${task.id}')">
-                        ${isChecked ? '✓' : ''}
+                <div class="task-item ${isVerified ? 'task-verified' : ''}" onclick="event.stopPropagation(); App.toggleTask('${project.id}', '${task.id}')">
+                    <div class="task-checkbox ${isChecked ? 'checked' : ''} ${isVerified ? 'verified' : ''}" onclick="event.stopPropagation(); App.toggleTask('${project.id}', '${task.id}')">
+                        ${isVerified ? '✓' : isChecked ? '✓' : ''}
                     </div>
                     <div class="task-info">
                         <div class="task-title" style="${isChecked ? 'text-decoration: line-through; color: var(--text-muted)' : ''}">${this.escapeHtml(task.title)}</div>
                         <div class="task-meta">
                             <span>${task.assignee || 'Unassigned'}</span>
                             <span>${this.formatStatus(task.status)}</span>
+                            ${isVerified ? `<span class="task-verified-badge">✓ Verified by ${this.escapeHtml(task.verifiedBy || 'ATLAS')}</span>` : ''}
+                            ${isDoneUnverified ? `<span class="task-pending-verify">⏳ Awaiting Atlas verification</span>` : ''}
                         </div>
                     </div>
                     <div class="task-actions" onclick="event.stopPropagation()">

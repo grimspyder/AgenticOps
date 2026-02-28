@@ -488,6 +488,35 @@ fastify.post('/api/tasks/:taskId/report', async (request, reply) => {
       message
     });
 
+    // Auto-dispatch Atlas verification when a task is marked done
+    if (newStatus === 'done' && agentName && agentName !== 'ATLAS') {
+      const taskWithProject = await prisma.task.findUnique({
+        where: { id: taskId },
+        include: { project: true }
+      });
+      if (taskWithProject) {
+        const verifyMsg = [
+          `Task completion verification needed:`,
+          ``,
+          `MISSION_CONTROL_TASK_ID: ${taskId}`,
+          `PROJECT: ${taskWithProject.project.name}`,
+          `TASK: ${taskWithProject.title}`,
+          `COMPLETED BY: ${agentName}`,
+          `AGENT MESSAGE: ${message || 'No message provided'}`,
+          ``,
+          `Please verify this task is truly complete. If satisfied, run:`,
+          `  mc-report task-verify ${taskId} ATLAS "Verified"`,
+          `If rework is needed:`,
+          `  mc-report task-reopen ${taskId} ATLAS "Reason for rework"`
+        ].join('\n');
+        // Fire-and-forget — don't block the response
+        execAsync(
+          `openclaw agent --agent main --channel telegram --deliver --message ${JSON.stringify(verifyMsg)}`,
+          { timeout: 60000 }
+        ).catch(err => console.error('Atlas verification dispatch failed:', err.message));
+      }
+    }
+
     return { success: true, task: updated };
   } catch (error) {
     reply.code(500);
@@ -553,6 +582,98 @@ fastify.post('/api/agents/report', async (request, reply) => {
     mcEvents.emit('agent:updated', { agent });
 
     return { success: true, agent };
+  } catch (error) {
+    reply.code(500);
+    return { error: error.message };
+  }
+});
+
+// ===================
+// Project Complete / Reactivate
+// ===================
+
+fastify.post('/api/projects/:projectId/complete', async (request, reply) => {
+  try {
+    const { projectId } = request.params;
+    const project = await prisma.project.update({
+      where: { id: projectId },
+      data: { status: 'completed', progress: 100 }
+    });
+    await prisma.activity.create({
+      data: { projectId, type: 'project', action: 'completed', description: `Project "${project.name}" marked as completed` }
+    });
+    mcEvents.emit('task:updated', { projectId });
+    return { success: true, project };
+  } catch (error) {
+    reply.code(500);
+    return { error: error.message };
+  }
+});
+
+fastify.post('/api/projects/:projectId/reactivate', async (request, reply) => {
+  try {
+    const { projectId } = request.params;
+    const project = await prisma.project.update({
+      where: { id: projectId },
+      data: { status: 'in_progress' }
+    });
+    await prisma.activity.create({
+      data: { projectId, type: 'project', action: 'reactivated', description: `Project "${project.name}" reactivated` }
+    });
+    mcEvents.emit('task:updated', { projectId });
+    return { success: true, project };
+  } catch (error) {
+    reply.code(500);
+    return { error: error.message };
+  }
+});
+
+// ===================
+// Task Verify / Reopen — called by Atlas via mc-report
+// ===================
+
+fastify.post('/api/tasks/:taskId/verify', async (request, reply) => {
+  try {
+    const { taskId } = request.params;
+    const { agentName, message } = request.body;
+    const task = await prisma.task.update({
+      where: { id: taskId },
+      data: { verified: true, verifiedBy: agentName || 'ATLAS', verifiedAt: new Date() }
+    });
+    await prisma.activity.create({
+      data: {
+        projectId: task.projectId,
+        type: 'task',
+        action: 'verified',
+        description: `${agentName || 'ATLAS'} verified task "${task.title}"${message ? ': ' + message : ''}`
+      }
+    });
+    mcEvents.emit('task:updated', { taskId, task, verified: true });
+    return { success: true, task };
+  } catch (error) {
+    reply.code(500);
+    return { error: error.message };
+  }
+});
+
+fastify.post('/api/tasks/:taskId/reopen', async (request, reply) => {
+  try {
+    const { taskId } = request.params;
+    const { agentName, message } = request.body;
+    const task = await prisma.task.update({
+      where: { id: taskId },
+      data: { status: 'in_progress', verified: false, verifiedBy: null, verifiedAt: null, completedAt: null, progress: 0 }
+    });
+    await prisma.activity.create({
+      data: {
+        projectId: task.projectId,
+        type: 'task',
+        action: 'reopened',
+        description: `${agentName || 'ATLAS'} reopened task "${task.title}"${message ? ': ' + message : ''}`
+      }
+    });
+    mcEvents.emit('task:updated', { taskId, task, reopened: true });
+    return { success: true, task };
   } catch (error) {
     reply.code(500);
     return { error: error.message };
