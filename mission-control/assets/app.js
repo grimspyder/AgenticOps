@@ -939,7 +939,8 @@ const App = {
         container.innerHTML = messages.map(message => {
             const msgTypeClass = this.getMessageTypeClass(message.messageType);
             const msgTypeLabel = this.getMessageTypeLabel(message.messageType);
-            const replies = message.replies || [];
+            let replies = [];
+            try { replies = message.replies ? (typeof message.replies === 'string' ? JSON.parse(message.replies) : message.replies) : []; } catch(e) { replies = []; }
             
             return `
                 <div class="message-item">
