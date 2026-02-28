@@ -659,19 +659,27 @@ fastify.post('/api/openclaw/webhook', async (request, reply) => {
   }
 });
 
-// OpenClaw health check — cached for 15s to avoid blocking the event loop
+// OpenClaw health check — cached 30s + promise coalescing to prevent stampede
 let healthCache = { result: null, ts: 0 };
+let healthPending = null;
 fastify.get('/api/openclaw/health', async (request, reply) => {
-  const now = Date.now();
-  if (now - healthCache.ts < 15000) {
+  if (Date.now() - healthCache.ts < 30000 && healthCache.result) {
     return healthCache.result;
   }
-  const isHealthy = await checkOpenClawHealth();
-  healthCache = {
-    result: { openclaw: isHealthy ? 'connected' : 'disconnected', timestamp: new Date().toISOString() },
-    ts: now
-  };
-  return healthCache.result;
+  if (!healthPending) {
+    healthPending = checkOpenClawHealth().then(isHealthy => {
+      healthCache = {
+        result: { openclaw: isHealthy ? 'connected' : 'disconnected', timestamp: new Date().toISOString() },
+        ts: Date.now()
+      };
+      healthPending = null;
+      return healthCache.result;
+    }).catch(() => {
+      healthPending = null;
+      return healthCache.result || { openclaw: 'disconnected', timestamp: new Date().toISOString() };
+    });
+  }
+  return healthPending;
 });
 
 // Assign task via OpenClaw
@@ -704,34 +712,36 @@ fastify.post('/api/openclaw/assign', async (request, reply) => {
 });
 
 // Get OpenClaw sessions (proxy)
-// Cache openclaw sessions for 30s — same shell command as health, no need to run it per client
+// Cache openclaw sessions 30s + promise coalescing to prevent stampede
 let sessionsCache = { result: null, ts: 0 };
+let sessionsPending = null;
 fastify.get('/api/openclaw/sessions', async (request, reply) => {
-  const now = Date.now();
-  if (now - sessionsCache.ts < 30000 && sessionsCache.result) {
+  if (Date.now() - sessionsCache.ts < 30000 && sessionsCache.result) {
     return sessionsCache.result;
   }
-  try {
-    const { stdout } = await execAsync(
+  if (!sessionsPending) {
+    sessionsPending = execAsync(
       'openclaw gateway call status --json --timeout 5000',
       { timeout: 10000 }
-    );
-    const status = JSON.parse(stdout);
-    sessionsCache = {
-      result: {
-        agents: status.heartbeat?.agents || [],
-        sessions: status.sessions?.recent || [],
-        count: status.sessions?.count || 0
-      },
-      ts: now
-    };
-    return sessionsCache.result;
-  } catch (error) {
-    // Return stale cache if available rather than failing
-    if (sessionsCache.result) return sessionsCache.result;
-    reply.code(503);
-    return { error: 'OpenClaw gateway unavailable', details: error.message };
+    ).then(({ stdout }) => {
+      const status = JSON.parse(stdout);
+      sessionsCache = {
+        result: {
+          agents: status.heartbeat?.agents || [],
+          sessions: status.sessions?.recent || [],
+          count: status.sessions?.count || 0
+        },
+        ts: Date.now()
+      };
+      sessionsPending = null;
+      return sessionsCache.result;
+    }).catch(error => {
+      sessionsPending = null;
+      if (sessionsCache.result) return sessionsCache.result;
+      return { agents: [], sessions: [], count: 0 };
+    });
   }
+  return sessionsPending;
 });
 
 start();
