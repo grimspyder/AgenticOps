@@ -372,24 +372,27 @@ const DataStore = {
   // ===================
   
   getStats() {
+    const activeStatuses = ['in_progress', 'active', 'not_started', 'on_hold', 'blocked'];
+    const activeProjects = this.projects.filter(p => activeStatuses.includes(p.status));
+
     let totalTasks = 0;
     let completedTasks = 0;
     let openTasks = 0;
-    
-    for (const project of this.projects) {
+
+    // Only count tasks from non-completed projects
+    for (const project of activeProjects) {
       const tasks = project.tasks || [];
       totalTasks += tasks.length;
-      completedTasks += tasks.filter(t => t.status === 'done').length;
-      openTasks += tasks.filter(t => t.status !== 'done').length;
+      completedTasks += tasks.filter(t => ['done', 'completed'].includes(t.status)).length;
+      openTasks += tasks.filter(t => !['done', 'completed'].includes(t.status)).length;
     }
-    
+
     const activeAgents = this.agents.filter(a => a.status === 'active').length;
-    
-    // Return structure matching what app.js expects
+
     return {
       projects: {
         total: this.projects.length,
-        active: this.projects.filter(p => p.status === 'in_progress').length
+        active: activeProjects.length
       },
       tasks: {
         total: totalTasks,
