@@ -704,19 +704,31 @@ fastify.post('/api/openclaw/assign', async (request, reply) => {
 });
 
 // Get OpenClaw sessions (proxy)
+// Cache openclaw sessions for 30s — same shell command as health, no need to run it per client
+let sessionsCache = { result: null, ts: 0 };
 fastify.get('/api/openclaw/sessions', async (request, reply) => {
+  const now = Date.now();
+  if (now - sessionsCache.ts < 30000 && sessionsCache.result) {
+    return sessionsCache.result;
+  }
   try {
     const { stdout } = await execAsync(
       'openclaw gateway call status --json --timeout 5000',
       { timeout: 10000 }
     );
     const status = JSON.parse(stdout);
-    return {
-      agents: status.heartbeat?.agents || [],
-      sessions: status.sessions?.recent || [],
-      count: status.sessions?.count || 0
+    sessionsCache = {
+      result: {
+        agents: status.heartbeat?.agents || [],
+        sessions: status.sessions?.recent || [],
+        count: status.sessions?.count || 0
+      },
+      ts: now
     };
+    return sessionsCache.result;
   } catch (error) {
+    // Return stale cache if available rather than failing
+    if (sessionsCache.result) return sessionsCache.result;
     reply.code(503);
     return { error: 'OpenClaw gateway unavailable', details: error.message };
   }

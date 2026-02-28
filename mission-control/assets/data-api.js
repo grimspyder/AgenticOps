@@ -60,17 +60,22 @@ const DataStore = {
           // Convert OpenClaw sessions to agent format
           const ocAgents = openclawData.sessions
             .filter(s => s.key?.includes(':subagent:') || s.key?.includes(':direct:'))
-            .map(s => ({
-              id: s.sessionId,
-              name: s.key || s.agentId,
-              role: s.key?.includes(':subagent:') ? 'subagent' : 'main',
-              status: 'active',
-              currentTaskId: s.sessionId,
-              model: s.model,
-              capabilities: { openClawKey: s.key, sessionId: s.sessionId },
-              source: 'openclaw',
-              updatedAt: new Date(s.updatedAt).toISOString()
-            }));
+            .map(s => {
+              // Clean name: strip :direct:XXXXXXXX suffix, keep agent:type:channel
+              const rawName = s.key || s.agentId || '';
+              const name = rawName.replace(/:direct:[^:]+$/, '').replace(/:subagent:[^:]+$/, '') || rawName;
+              return {
+                id: s.sessionId,
+                name,
+                role: s.key?.includes(':subagent:') ? 'subagent' : 'main',
+                status: 'active',
+                currentTaskId: s.sessionId,
+                model: s.model,
+                capabilities: { openClawKey: s.key, sessionId: s.sessionId },
+                source: 'openclaw',
+                updatedAt: new Date(s.updatedAt).toISOString()
+              };
+            });
           
           // Merge with existing agents (OpenClaw agents take precedence for status)
           const existingIds = new Set(this.agents.map(a => a.id));
