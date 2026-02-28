@@ -47,7 +47,7 @@ const App = {
     async checkOpenClawStatus() {
         const indicator = document.getElementById('oc-connection-indicator');
         if (!indicator) return;
-        
+
         try {
             const health = await ApiClient.getOpenClawHealth();
             if (health.openclaw === 'connected') {
@@ -62,88 +62,100 @@ const App = {
             indicator.textContent = '🦞 Offline';
             indicator.className = 'ws-connection-indicator ws-disconnected';
         }
-        
-        // Refresh OpenClaw agents periodically
-        setInterval(() => {
-            this.checkOpenClawStatus();
-            DataStore.load().then(() => this.render());
-        }, 30000);
     },
     
     // ===================
     // Live Tracking (WebSocket)
     // ===================
     
+    // Debounced reload — collapses rapid-fire events into a single load+render
+    scheduleReload() {
+        if (this._reloadTimer) clearTimeout(this._reloadTimer);
+        this._reloadTimer = setTimeout(() => {
+            this._reloadTimer = null;
+            DataStore.load().then(() => this.render());
+        }, 500);
+    },
+
     startLiveTracking() {
-        // Set up WebSocket event listeners for real-time updates
-        
         // Agent connected
         WebSocketClient.on('agent:connected', (data) => {
             console.log('Agent connected:', data);
             this.showNotification(`${data.name} connected`, 'success');
-            DataStore.load().then(() => this.render());
+            this.scheduleReload();
         });
-        
+
         // Agent disconnected
         WebSocketClient.on('agent:disconnected', (data) => {
             console.log('Agent disconnected:', data);
             this.showNotification(`${data.name} disconnected`, 'warning');
-            DataStore.load().then(() => this.render());
+            this.scheduleReload();
         });
-        
+
         // Agent status update
         WebSocketClient.on('agent:status:update', (data) => {
             console.log('Agent status update:', data);
-            DataStore.load().then(() => this.render());
+            this.scheduleReload();
         });
-        
+
         // Task progress update
         WebSocketClient.on('task:progress:update', (data) => {
             console.log('Task progress:', data);
             this.showNotification(`Task progress: ${data.progress}% - ${data.message}`, 'info');
-            DataStore.load().then(() => this.render());
+            this.scheduleReload();
         });
-        
+
         // Task completed
         WebSocketClient.on('task:completed', (data) => {
             console.log('Task completed:', data);
-            this.showNotification('Task completed! 🎉', 'success');
-            DataStore.load().then(() => this.render());
+            this.showNotification('Task completed!', 'success');
+            this.scheduleReload();
         });
-        
+
         // Dashboard state received (initial sync)
         WebSocketClient.on('dashboard:state', (data) => {
             console.log('Dashboard state received:', data);
             DataStore.agents = data.agents || DataStore.agents;
-            DataStore.load().then(() => this.render());
+            this.scheduleReload();
         });
-        
+
         // Activity update
         WebSocketClient.on('activity:new', (data) => {
             console.log('New activity:', data);
-            DataStore.load().then(() => this.render());
+            this.scheduleReload();
         });
-        
+
+        // Task/agent updated via mc-report
+        WebSocketClient.on('task:updated', (data) => {
+            console.log('Task updated:', data);
+            this.scheduleReload();
+        });
+
+        WebSocketClient.on('agent:updated', (data) => {
+            console.log('Agent updated:', data);
+            this.scheduleReload();
+        });
+
         // Connection status
         WebSocketClient.on('connected', () => {
             console.log('WebSocket connected - real-time updates active');
             this.showNotification('Real-time updates connected', 'success');
+            this.scheduleReload();
         });
-        
+
         WebSocketClient.on('disconnected', () => {
             console.log('WebSocket disconnected - using fallback polling');
             this.showNotification('Reconnecting to real-time updates...', 'warning');
         });
-        
-        // Fallback: Also keep polling as backup (every 30 seconds)
-        // This ensures we still get updates if WebSocket fails
+
+        // Single periodic refresh: sync data every 60s and check OpenClaw status
         setInterval(() => {
+            this.checkOpenClawStatus();
             if (!WebSocketClient.isConnected) {
                 console.log('Polling fallback: refreshing data');
-                DataStore.load().then(() => this.render());
+                this.scheduleReload();
             }
-        }, 30000);
-        
+        }, 60000);
     },
     
     // ===================
