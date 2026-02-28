@@ -232,6 +232,8 @@ export default async function websocketRoutes(fastify, options) {
   mcEvents.on('agent:updated', (data) => broadcast('agent:updated', data));
   mcEvents.on('comms:message:user', (data) => broadcast('comms:message:user', data));
   mcEvents.on('comms:atlas:response', (data) => broadcast('comms:atlas:response', data));
+  mcEvents.on('message:new', (data) => broadcast('message:new', data));
+  mcEvents.on('note:new', (data) => broadcast('note:new', data));
 
   // WebSocket endpoint
   fastify.get('/ws', { websocket: true }, (connection, req) => {

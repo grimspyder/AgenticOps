@@ -148,6 +148,26 @@ const App = {
             this.showNotification('Reconnecting to real-time updates...', 'warning');
         });
 
+        // Atlas replied to a Discussion message — refresh the open project detail panel
+        WebSocketClient.on('message:new', (data) => {
+            if (App.selectedProject && data.projectId === App.selectedProject.id) {
+                DataStore.load().then(() => {
+                    App.selectedProject = DataStore.projects.find(p => p.id === data.projectId) || App.selectedProject;
+                    App.renderProjectMessages(App.selectedProject);
+                });
+            }
+        });
+
+        // Atlas replied to a Note — refresh the open project detail panel
+        WebSocketClient.on('note:new', (data) => {
+            if (App.selectedProject && data.projectId === App.selectedProject.id) {
+                DataStore.load().then(() => {
+                    App.selectedProject = DataStore.projects.find(p => p.id === data.projectId) || App.selectedProject;
+                    App.renderProjectNotes(App.selectedProject);
+                });
+            }
+        });
+
         // Atlas chat response
         WebSocketClient.on('comms:atlas:response', (data) => {
             const typing = document.getElementById('comms-typing');
@@ -1186,9 +1206,10 @@ const App = {
         const form = document.getElementById('newNoteForm');
         const formData = new FormData(form);
         
+        const noteAuthor = formData.get('author');
         DataStore.addProjectNote(this.selectedProject.id, {
-            author: formData.get('author'),
-            authorRole: 'agent',
+            author: noteAuthor,
+            authorRole: noteAuthor === 'Human' ? 'user' : 'agent',
             content: formData.get('content'),
             noteType: formData.get('noteType')
         });
@@ -1225,9 +1246,10 @@ const App = {
         const form = document.getElementById('newMessageForm');
         const formData = new FormData(form);
         
+        const msgAuthor = formData.get('author');
         DataStore.addProjectMessage(this.selectedProject.id, {
-            author: formData.get('author'),
-            authorRole: 'agent',
+            author: msgAuthor,
+            authorRole: msgAuthor === 'Human' ? 'user' : 'agent',
             content: formData.get('content'),
             messageType: formData.get('messageType')
         });

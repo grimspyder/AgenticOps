@@ -137,7 +137,7 @@ fastify.post('/api/projects/:projectId/notes', async (request, reply) => {
   try {
     const { projectId } = request.params;
     const { author, authorRole, content, noteType, relatedTaskId } = request.body;
-    
+
     const note = await prisma.note.create({
       data: {
         projectId,
@@ -148,8 +148,7 @@ fastify.post('/api/projects/:projectId/notes', async (request, reply) => {
         relatedTaskId
       }
     });
-    
-    // Add activity
+
     await prisma.activity.create({
       data: {
         projectId,
@@ -158,7 +157,59 @@ fastify.post('/api/projects/:projectId/notes', async (request, reply) => {
         description: `${author || 'Unknown'} added a note`
       }
     });
-    
+
+    mcEvents.emit('note:new', { projectId, note });
+
+    // Notify Atlas when a non-Atlas human posts a note
+    if (author !== 'ATLAS' && authorRole !== 'atlas') {
+      const project = await prisma.project.findUnique({
+        where: { id: projectId },
+        include: { tasks: true }
+      });
+      if (project) {
+        const recentNotes = await prisma.note.findMany({
+          where: { projectId },
+          orderBy: { createdAt: 'desc' },
+          take: 5
+        });
+        const noteHistory = recentNotes.reverse().map(n =>
+          `  [${n.author}]: ${n.content}`
+        ).join('\n');
+
+        const contextMsg = [
+          `[Mission Control — Agent Notes: ${project.name}]`,
+          ``,
+          `A new note has been added to the project "${project.name}" (${project.status}, ${project.progress}% complete).`,
+          ``,
+          `Recent notes:`,
+          noteHistory,
+          ``,
+          `Open tasks: ${project.tasks.filter(t => !['done','completed'].includes(t.status)).map(t => `"${t.title}" (${t.status})`).join(', ') || 'none'}`,
+          ``,
+          `Please acknowledge this note and respond with any relevant observations, actions, or follow-up.`,
+          `Your response will be posted back to Mission Control Agent Notes.`
+        ].join('\n');
+
+        execAsync(`openclaw agent --agent main --message ${JSON.stringify(contextMsg)}`, { timeout: 120000 })
+          .then(({ stdout }) => {
+            const response = stdout.trim();
+            if (!response) return;
+            return prisma.note.create({
+              data: {
+                projectId,
+                author: 'ATLAS',
+                authorRole: 'atlas',
+                content: response,
+                noteType: 'update'
+              }
+            }).then(atlasNote => {
+              mcEvents.emit('note:new', { projectId, note: atlasNote });
+            });
+          })
+          .catch(err => console.error('Atlas note response failed:', err.message));
+      }
+    }
+
     return note;
   } catch (error) {
     reply.code(500);
@@ -217,7 +268,7 @@ fastify.post('/api/projects/:projectId/messages', async (request, reply) => {
   try {
     const { projectId } = request.params;
     const { author, authorRole, content, messageType, parentId } = request.body;
-    
+
     const message = await prisma.message.create({
       data: {
         projectId,
@@ -228,8 +279,7 @@ fastify.post('/api/projects/:projectId/messages', async (request, reply) => {
         parentId
       }
     });
-    
-    // Add activity
+
     await prisma.activity.create({
       data: {
         projectId,
@@ -238,7 +288,59 @@ fastify.post('/api/projects/:projectId/messages', async (request, reply) => {
         description: `${author || 'Unknown'} posted a message`
       }
     });
-    
+
+    mcEvents.emit('message:new', { projectId, message });
+
+    // Notify Atlas when a non-Atlas author posts in Discussion
+    if (author !== 'ATLAS' && authorRole !== 'atlas') {
+      const project = await prisma.project.findUnique({
+        where: { id: projectId },
+        include: { tasks: true }
+      });
+      if (project) {
+        const recentMessages = await prisma.message.findMany({
+          where: { projectId },
+          orderBy: { createdAt: 'asc' },
+          take: 10
+        });
+        const thread = recentMessages.map(m =>
+          `  [${m.author}]: ${m.content}`
+        ).join('\n');
+
+        const contextMsg = [
+          `[Mission Control — Discussion Board: ${project.name}]`,
+          ``,
+          `A message has been posted to the Discussion board for project "${project.name}" (${project.status}, ${project.progress}% complete).`,
+          ``,
+          `Discussion thread:`,
+          thread,
+          ``,
+          `Open tasks: ${project.tasks.filter(t => !['done','completed'].includes(t.status)).map(t => `"${t.title}" (${t.status}${t.assignee ? ', ' + t.assignee : ''})`).join(', ') || 'none'}`,
+          ``,
+          `Please read the discussion and respond appropriately. Address any questions, provide status, or take action.`,
+          `Your response will be posted back to the Mission Control Discussion board.`
+        ].join('\n');
+
+        execAsync(`openclaw agent --agent main --message ${JSON.stringify(contextMsg)}`, { timeout: 120000 })
+          .then(({ stdout }) => {
+            const response = stdout.trim();
+            if (!response) return;
+            return prisma.message.create({
+              data: {
+                projectId,
+                author: 'ATLAS',
+                authorRole: 'atlas',
+                content: response,
+                messageType: 'update'
+              }
+            }).then(atlasMsg => {
+              mcEvents.emit('message:new', { projectId, message: atlasMsg });
+            });
+          })
+          .catch(err => console.error('Atlas message response failed:', err.message));
+      }
+    }
+
     return message;
   } catch (error) {
     reply.code(500);
