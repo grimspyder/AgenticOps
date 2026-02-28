@@ -1255,6 +1255,110 @@ const App = {
                 App.showView(item.dataset.view);
             });
         });
+
+        // Search
+        const searchInput = document.getElementById('search-input');
+        const searchResults = document.getElementById('search-results');
+
+        searchInput.addEventListener('input', () => {
+            App.runSearch(searchInput.value.trim());
+        });
+
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                searchInput.value = '';
+                App.closeSearch();
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.search-wrapper')) App.closeSearch();
+        });
+    },
+
+    closeSearch() {
+        document.getElementById('search-results').classList.remove('visible');
+    },
+
+    runSearch(query) {
+        const results = document.getElementById('search-results');
+        if (!query) { results.classList.remove('visible'); return; }
+
+        const q = query.toLowerCase();
+
+        const matchedProjects = DataStore.projects.filter(p =>
+            p.name.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q)
+        ).slice(0, 4);
+
+        const matchedTasks = DataStore.projects.flatMap(p =>
+            (p.tasks || []).map(t => ({ ...t, projectName: p.name, projectId: p.id }))
+        ).filter(t =>
+            t.title.toLowerCase().includes(q) ||
+            (t.description || '').toLowerCase().includes(q) ||
+            (t.assignee || '').toLowerCase().includes(q)
+        ).slice(0, 6);
+
+        const matchedAgents = DataStore.agents.filter(a =>
+            a.name.toLowerCase().includes(q) || (a.role || '').toLowerCase().includes(q)
+        ).slice(0, 4);
+
+        if (!matchedProjects.length && !matchedTasks.length && !matchedAgents.length) {
+            results.innerHTML = `<div class="search-no-results">No results for "${this.escapeHtml(query)}"</div>`;
+            results.classList.add('visible');
+            return;
+        }
+
+        let html = '';
+
+        if (matchedProjects.length) {
+            html += `<div class="search-result-section">
+                <div class="search-result-section-label">Projects</div>
+                ${matchedProjects.map(p => `
+                    <div class="search-result-item" onclick="App.closeSearch(); App.openProjectDetail('${p.id}')">
+                        <span class="search-result-icon">▦</span>
+                        <div class="search-result-main">
+                            <div class="search-result-title">${this.escapeHtml(p.name)}</div>
+                            <div class="search-result-sub">${this.escapeHtml(p.description || '')}</div>
+                        </div>
+                        <span class="search-result-badge status-${p.status}">${this.formatStatus(p.status)}</span>
+                    </div>`).join('')}
+            </div>`;
+        }
+
+        if (matchedTasks.length) {
+            if (html) html += '<hr class="search-result-divider">';
+            html += `<div class="search-result-section">
+                <div class="search-result-section-label">Tasks</div>
+                ${matchedTasks.map(t => `
+                    <div class="search-result-item" onclick="App.closeSearch(); App.openProjectDetail('${t.projectId}')">
+                        <span class="search-result-icon">◫</span>
+                        <div class="search-result-main">
+                            <div class="search-result-title">${this.escapeHtml(t.title)}</div>
+                            <div class="search-result-sub">${this.escapeHtml(t.projectName)} · ${this.escapeHtml(t.assignee || 'unassigned')}</div>
+                        </div>
+                        <span class="search-result-badge status-${t.status}">${this.formatStatus(t.status)}</span>
+                    </div>`).join('')}
+            </div>`;
+        }
+
+        if (matchedAgents.length) {
+            if (html) html += '<hr class="search-result-divider">';
+            html += `<div class="search-result-section">
+                <div class="search-result-section-label">Agents</div>
+                ${matchedAgents.map(a => `
+                    <div class="search-result-item" onclick="App.closeSearch(); App.showView('all-agents')">
+                        <span class="search-result-icon">⚡</span>
+                        <div class="search-result-main">
+                            <div class="search-result-title">${this.escapeHtml(a.name)}</div>
+                            <div class="search-result-sub">${this.escapeHtml(a.role || '')}</div>
+                        </div>
+                        <span class="search-result-badge status-${a.status}">${this.escapeHtml(a.status)}</span>
+                    </div>`).join('')}
+            </div>`;
+        }
+
+        results.innerHTML = html;
+        results.classList.add('visible');
     },
     
     // ===================
