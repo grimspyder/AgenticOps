@@ -8,12 +8,14 @@ import cors from '@fastify/cors';
 import fastifyWebsocket from '@fastify/websocket';
 import fastifyStatic from '@fastify/static';
 import { PrismaClient } from '@prisma/client';
-import { exec } from 'child_process';
+import { exec, execFile } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 const execAsync = promisify(exec);
+// execFileAsync bypasses /bin/sh — safe for messages containing backticks/special chars
+const execFileAsync = promisify(execFile);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -190,7 +192,7 @@ fastify.post('/api/projects/:projectId/notes', async (request, reply) => {
           `Your response will be posted back to Mission Control Agent Notes.`
         ].join('\n');
 
-        execAsync(`openclaw agent --agent main --message ${JSON.stringify(contextMsg)}`, { timeout: 120000 })
+        execFileAsync('openclaw', ['agent', '--agent', 'main', '--message', contextMsg], { timeout: 120000 })
           .then(({ stdout }) => {
             const response = stdout.trim();
             if (!response) return;
@@ -321,7 +323,7 @@ fastify.post('/api/projects/:projectId/messages', async (request, reply) => {
           `Your response will be posted back to the Mission Control Discussion board.`
         ].join('\n');
 
-        execAsync(`openclaw agent --agent main --message ${JSON.stringify(contextMsg)}`, { timeout: 120000 })
+        execFileAsync('openclaw', ['agent', '--agent', 'main', '--message', contextMsg], { timeout: 120000 })
           .then(({ stdout }) => {
             const response = stdout.trim();
             if (!response) return;
@@ -828,7 +830,7 @@ fastify.post('/api/comms/message', async (request, reply) => {
     ].join('\n');
 
     // Run Atlas async — no blocking
-    execAsync(`openclaw agent --agent main --message ${JSON.stringify(contextualMessage)}`, { timeout: 120000 })
+    execFileAsync('openclaw', ['agent', '--agent', 'main', '--message', contextualMessage], { timeout: 120000 })
       .then(({ stdout }) => {
         const response = stdout.trim() || '(no response)';
         return prisma.commMessage.update({
