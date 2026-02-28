@@ -887,7 +887,10 @@ const App = {
                             <span class="note-avatar">${note.author.split(' ').map(n => n[0]).join('')}</span>
                             <span>${this.escapeHtml(note.author)}</span>
                         </div>
-                        <span class="note-type ${noteTypeClass}">${noteTypeLabel}</span>
+                        <div style="display:flex;align-items:center;gap:8px">
+                            <span class="note-type ${noteTypeClass}">${noteTypeLabel}</span>
+                            <button class="btn-delete-item" onclick="App.deleteNote('${project.id}', '${note.id}')" title="Delete note">✕</button>
+                        </div>
                     </div>
                     <div class="note-content">${this.escapeHtml(note.content)}</div>
                     <div class="note-time">${this.formatTime(note.createdAt)}</div>
@@ -955,6 +958,7 @@ const App = {
                             <button class="message-action-btn" onclick="App.upvoteMessage('${project.id}', '${message.id}')">
                                 👍 ${message.upvotes?.length || 0}
                             </button>
+                            <button class="btn-delete-item" onclick="App.deleteMessage('${project.id}', '${message.id}')" title="Delete message">✕</button>
                         </div>
                     </div>
                     ${replies.length > 0 ? `
@@ -1301,7 +1305,19 @@ const App = {
         }
         this.render();
     },
-    
+
+    async deleteNote(projectId, noteId) {
+        await DataStore.deleteProjectNote(projectId, noteId);
+        const project = DataStore.getProject(projectId);
+        if (project) this.renderProjectNotes(project);
+    },
+
+    async deleteMessage(projectId, messageId) {
+        await DataStore.deleteProjectMessage(projectId, messageId);
+        const project = DataStore.getProject(projectId);
+        if (project) this.renderProjectMessages(project);
+    },
+
     // ===================
     // Event Binding
     // ===================
