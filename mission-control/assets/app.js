@@ -531,16 +531,33 @@ const App = {
         container.innerHTML = agents.map(agent => {
             const avatarInitials = agent.name.split(' ').map(n => n[0]).join('');
             const roleClass = agent.role.toLowerCase();
-            const unresolvedIssues = agent.agentActivity?.issues?.filter(i => !i.resolved).length || 0;
+            // agentActivity is stored as a JSON string in the DB — parse it
+            const agentAct = (() => {
+                try { return typeof agent.agentActivity === 'string' ? JSON.parse(agent.agentActivity) : (agent.agentActivity || {}); }
+                catch { return {}; }
+            })();
+            const unresolvedIssues = agentAct.issues?.filter(i => !i.resolved).length || 0;
             const isOpenClaw = agent.source === 'openclaw';
             const ocBadge = isOpenClaw ? '<span class="oc-badge" title="Connected via OpenClaw">🦞</span>' : '';
 
             const stats = agentStats[agent.name] || { done: 0, active: null };
-            // Resolve current task: prefer in_progress task, fall back to DB currentTaskId lookup
-            const currentTask = stats.active || (agent.currentTaskId ? taskById[agent.currentTaskId] : null);
-            const taskDisplay = currentTask
-                ? `${this.escapeHtml(currentTask.title)} <span style="color:var(--text-muted);font-size:11px">(${currentTask.projectName || ''})</span>`
-                : '<span style="color: var(--text-muted)">No active task</span>';
+            // currentTaskId may be corrupted (Scout had a multi-line blob stored) — only use it if it looks like a UUID
+            const validTaskId = agent.currentTaskId && /^[0-9a-f-]{36}$/i.test(agent.currentTaskId.trim())
+                ? agent.currentTaskId.trim() : null;
+            // Resolve current task: prefer in_progress task from DB, then DB ID lookup, then self-reported fields
+            const currentTask = stats.active || (validTaskId ? taskById[validTaskId] : null);
+            const currentAction = agentAct.currentAction;
+            const staleActions = new Set(['Task completed', 'Idle', 'idle', '']);
+            let taskDisplay;
+            if (currentTask) {
+                taskDisplay = `${this.escapeHtml(currentTask.title)} <span style="color:var(--text-muted);font-size:11px">(${currentTask.projectName || ''})</span>`;
+            } else if (agent.currentTaskTitle) {
+                taskDisplay = this.escapeHtml(agent.currentTaskTitle);
+            } else if (currentAction && !staleActions.has(currentAction)) {
+                taskDisplay = `<span style="color:var(--text-muted);font-size:12px">${this.escapeHtml(currentAction)}</span>`;
+            } else {
+                taskDisplay = '<span style="color: var(--text-muted)">No active task</span>';
+            }
             const tasksDone = stats.done || agent.totalTasksCompleted || 0;
 
             return `
