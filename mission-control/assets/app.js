@@ -168,8 +168,9 @@ const App = {
             this.showNotification('Reconnecting to real-time updates...', 'warning');
         });
 
-        // Atlas replied to a Discussion message — refresh the open project detail panel
+        // Atlas replied to a Discussion message — refresh messages panel + activity feed
         WebSocketClient.on('message:new', (data) => {
+            this.scheduleReload();
             if (App.selectedProject && data.projectId === App.selectedProject.id) {
                 DataStore.load().then(() => {
                     App.selectedProject = DataStore.projects.find(p => p.id === data.projectId) || App.selectedProject;
@@ -178,8 +179,9 @@ const App = {
             }
         });
 
-        // Atlas replied to a Note — refresh the open project detail panel
+        // Atlas replied to a Note — refresh notes panel + activity feed
         WebSocketClient.on('note:new', (data) => {
+            this.scheduleReload();
             if (App.selectedProject && data.projectId === App.selectedProject.id) {
                 DataStore.load().then(() => {
                     App.selectedProject = DataStore.projects.find(p => p.id === data.projectId) || App.selectedProject;

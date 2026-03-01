@@ -1038,6 +1038,7 @@ fastify.post('/api/projects/:projectId/complete', async (request, reply) => {
       data: { projectId, type: 'project', action: 'completed', description: `Project "${project.name}" marked as completed` }
     });
     mcEvents.emit('task:updated', { projectId });
+    mcEvents.emit('activity:new', { projectId });
     return { success: true, project };
   } catch (error) {
     reply.code(500);
@@ -1056,6 +1057,7 @@ fastify.post('/api/projects/:projectId/reactivate', async (request, reply) => {
       data: { projectId, type: 'project', action: 'reactivated', description: `Project "${project.name}" reactivated` }
     });
     mcEvents.emit('task:updated', { projectId });
+    mcEvents.emit('activity:new', { projectId });
     return { success: true, project };
   } catch (error) {
     reply.code(500);

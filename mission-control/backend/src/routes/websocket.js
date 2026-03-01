@@ -184,7 +184,7 @@ async function handleMessage(ws, data, prisma) {
         const state = {
           agents: await prisma.agent.findMany(),
           tasks: await prisma.task.findMany({ where: { status: { not: 'done' } } }),
-          activities: await prisma.activity.findMany({ take: 50, orderBy: { createdAt: 'desc' } })
+          activities: await prisma.activity.findMany({ take: 100, orderBy: { createdAt: 'desc' } })
         };
         ws.send(JSON.stringify({ type: 'dashboard:state', payload: state, timestamp: new Date().toISOString() }));
         break;
@@ -230,6 +230,7 @@ export default async function websocketRoutes(fastify, options) {
   // Subscribe to REST-triggered events and broadcast to WebSocket clients
   mcEvents.on('task:updated', (data) => broadcast('task:updated', data));
   mcEvents.on('agent:updated', (data) => broadcast('agent:updated', data));
+  mcEvents.on('activity:new', (data) => broadcast('activity:new', data));
   mcEvents.on('comms:message:user', (data) => broadcast('comms:message:user', data));
   mcEvents.on('comms:atlas:response', (data) => broadcast('comms:atlas:response', data));
   mcEvents.on('message:new', (data) => broadcast('message:new', data));
