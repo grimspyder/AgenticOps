@@ -782,6 +782,22 @@ fastify.post('/api/tasks/:taskId/report', async (request, reply) => {
       }
     });
 
+    // When a task is completed with a message, write it as a Note so it
+    // appears in the project's Notes panel (not just the activity log)
+    if (newStatus === 'done' && message) {
+      const note = await prisma.note.create({
+        data: {
+          projectId: task.projectId,
+          author: agentName || 'Agent',
+          authorRole: 'agent',
+          content: `**Task completed: ${task.title}**\n\n${message}`,
+          noteType: 'update',
+          relatedTaskId: taskId
+        }
+      });
+      mcEvents.emit('note:new', { projectId: task.projectId, note });
+    }
+
     // Broadcast to dashboard via WebSocket
     mcEvents.emit('task:updated', {
       taskId,
@@ -803,15 +819,21 @@ fastify.post('/api/tasks/:taskId/report', async (request, reply) => {
           `Task completion verification needed:`,
           ``,
           `MISSION_CONTROL_TASK_ID: ${taskId}`,
+          `MISSION_CONTROL_PROJECT_ID: ${taskWithProject.projectId}`,
           `PROJECT: ${taskWithProject.project.name}`,
           `TASK: ${taskWithProject.title}`,
           `COMPLETED BY: ${agentName}`,
           `AGENT MESSAGE: ${message || 'No message provided'}`,
           ``,
-          `Please verify this task is truly complete. If satisfied, run:`,
-          `  mc-report task-verify ${taskId} ATLAS "Verified"`,
+          `Review the work and verify it meets the standard. Then execute these as exec() tool calls:`,
+          ``,
+          `If complete and satisfactory:`,
+          `  ~/.openclaw/workspace/tools/mc-report task-verify ${taskId} ATLAS "Verified — [brief reason]"`,
+          `  ~/.openclaw/workspace/tools/mc-report note-add ${taskWithProject.projectId} ATLAS "Your findings and any handoff notes" handoff ${taskId}`,
           `If rework is needed:`,
-          `  mc-report task-reopen ${taskId} ATLAS "Reason for rework"`
+          `  ~/.openclaw/workspace/tools/mc-report task-reopen ${taskId} ATLAS "Specific reason for rejection"`,
+          ``,
+          `CRITICAL: Execute these as exec() tool calls. Text responses do not update Mission Control.`
         ].join('\n');
         // Fire-and-forget — don't block the response
         execAsync(
@@ -906,14 +928,20 @@ fastify.post('/api/tasks/:taskId/dispatch-verify', async (request, reply) => {
       `Task completion verification needed:`,
       ``,
       `MISSION_CONTROL_TASK_ID: ${task.id}`,
+      `MISSION_CONTROL_PROJECT_ID: ${task.projectId}`,
       `PROJECT: ${task.project.name}`,
       `TASK: ${task.title}`,
       `COMPLETED BY: ${task.assignee || 'Manual (dashboard)'}`,
       ``,
-      `Please verify this task is truly complete. If satisfied, run:`,
-      `  mc-report task-verify ${task.id} ATLAS "Verified"`,
+      `Review the work and verify it meets the standard. Then execute these as exec() tool calls:`,
+      ``,
+      `If complete and satisfactory:`,
+      `  ~/.openclaw/workspace/tools/mc-report task-verify ${task.id} ATLAS "Verified — [brief reason]"`,
+      `  ~/.openclaw/workspace/tools/mc-report note-add ${task.projectId} ATLAS "Your findings and any handoff notes" handoff ${task.id}`,
       `If rework is needed:`,
-      `  mc-report task-reopen ${task.id} ATLAS "Reason for rework"`
+      `  ~/.openclaw/workspace/tools/mc-report task-reopen ${task.id} ATLAS "Specific reason for rejection"`,
+      ``,
+      `CRITICAL: Execute these as exec() tool calls. Text responses do not update Mission Control.`
     ].join('\n');
 
     execAsync(
@@ -1144,6 +1172,7 @@ fastify.post('/api/dispatch/atlas', async (request, reply) => {
       `New task dispatched from Mission Control:`,
       ``,
       `MISSION_CONTROL_TASK_ID: ${task.id}`,
+      `MISSION_CONTROL_PROJECT_ID: ${task.projectId}`,
       `PROJECT: ${task.project.name}`,
       `TASK: ${task.title}`,
       `DESCRIPTION: ${task.description || 'No description provided'}`,
@@ -1152,7 +1181,16 @@ fastify.post('/api/dispatch/atlas', async (request, reply) => {
       `CURRENT ASSIGNEE: ${task.assignee || 'Unassigned'}`,
       ``,
       `Apply the command cycle: RECEIVE → UNDERSTAND INTENT → ASSESS → PLAN → DELEGATE → MONITOR → REPORT`,
-      `Use mc-report to track progress on this task.`
+      ``,
+      `When the task is complete, run these two commands:`,
+      `  1. ~/.openclaw/workspace/tools/mc-report task-done ${task.id} ATLAS "Brief summary of what was done"`,
+      `  2. ~/.openclaw/workspace/tools/mc-report note-add ${task.projectId} ATLAS "Detailed instructions, findings, or next steps" handoff ${task.id}`,
+      ``,
+      `To report progress while working:`,
+      `  ~/.openclaw/workspace/tools/mc-report task-progress ${task.id} ATLAS <0-100> "Status update"`,
+      ``,
+      `CRITICAL: After receiving sub-agent completion, YOU MUST execute these as exec() tool calls.`,
+      `Do not just summarize in text. The MC dashboard will not update unless you run them.`
     ].join('\n');
 
     // Send to Atlas via OpenClaw — deliver reply back to Grim via Telegram

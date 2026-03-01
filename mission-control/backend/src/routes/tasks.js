@@ -1,6 +1,7 @@
 /**
  * Tasks API Routes
  */
+import { mcEvents } from '../events.js';
 
 export default async function tasksRoutes(fastify, options) {
   
@@ -174,8 +175,11 @@ export default async function tasksRoutes(fastify, options) {
           where: { id: existingTask.projectId },
           data: { progress, ...(autoStatus && { status: autoStatus }) }
         });
+
+        // Broadcast status change to all connected dashboard clients
+        mcEvents.emit('task:updated', { taskId, task });
       }
-      
+
       return task;
     } catch (error) {
       reply.code(500);
