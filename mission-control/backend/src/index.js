@@ -17,11 +17,34 @@ const execAsync = promisify(exec);
 // execFileAsync bypasses /bin/sh — safe for messages containing backticks/special chars
 const execFileAsync = promisify(execFile);
 
+// Callsign → openclaw agent ID mapping
+const CALLSIGN_TO_AGENT = {
+  'CodeWright': 'coding-agent',
+  'Archon':     'architecture-agent',
+  'Scout':      'research-agent',
+  'Sentry':     'devops-agent',
+  'Validator':  'testing-agent',
+  'ATLAS':      'main'
+};
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Initialize Prisma
 const prisma = new PrismaClient();
+
+// Returns unique sub-agent callsigns (non-Atlas) assigned to tasks in a project,
+// optionally excluding one callsign (e.g. the author, to avoid self-notification).
+async function getProjectSubAgents(projectId, excludeCallsign = null) {
+  const tasks = await prisma.task.findMany({
+    where: { projectId },
+    select: { assignee: true }
+  });
+  return [...new Set(
+    tasks.map(t => t.assignee)
+      .filter(a => a && a !== 'ATLAS' && a !== excludeCallsign && CALLSIGN_TO_AGENT[a])
+  )];
+}
 
 // Initialize Fastify
 const fastify = Fastify({
@@ -162,8 +185,8 @@ fastify.post('/api/projects/:projectId/notes', async (request, reply) => {
 
     mcEvents.emit('note:new', { projectId, note });
 
-    // Notify Atlas when a non-Atlas human posts a note
-    if (author !== 'ATLAS' && authorRole !== 'atlas') {
+    // Notify Atlas and sub-agents about this note
+    {
       const project = await prisma.project.findUnique({
         where: { id: projectId },
         include: { tasks: true }
@@ -178,37 +201,66 @@ fastify.post('/api/projects/:projectId/notes', async (request, reply) => {
           `  [${n.author}]: ${n.content}`
         ).join('\n');
 
-        const contextMsg = [
-          `[Mission Control — Agent Notes: ${project.name}]`,
-          ``,
-          `A new note has been added to the project "${project.name}" (${project.status}, ${project.progress}% complete).`,
-          ``,
-          `Recent notes:`,
-          noteHistory,
-          ``,
-          `Open tasks: ${project.tasks.filter(t => !['done','completed'].includes(t.status)).map(t => `"${t.title}" (${t.status})`).join(', ') || 'none'}`,
-          ``,
-          `Please acknowledge this note and respond with any relevant observations, actions, or follow-up.`,
-          `Your response will be posted back to Mission Control Agent Notes.`
-        ].join('\n');
+        // Notify Atlas (unless Atlas posted it) — Atlas auto-responds with a note
+        if (author !== 'ATLAS' && authorRole !== 'atlas') {
+          const contextMsg = [
+            `[Mission Control — Agent Notes: ${project.name}]`,
+            ``,
+            `A new note has been added to the project "${project.name}" (${project.status}, ${project.progress}% complete).`,
+            ``,
+            `Recent notes:`,
+            noteHistory,
+            ``,
+            `Open tasks: ${project.tasks.filter(t => !['done','completed'].includes(t.status)).map(t => `"${t.title}" (${t.status})`).join(', ') || 'none'}`,
+            ``,
+            `Please acknowledge this note and respond with any relevant observations, actions, or follow-up.`,
+            `Your response will be posted back to Mission Control Agent Notes.`
+          ].join('\n');
 
-        execFileAsync('openclaw', ['agent', '--agent', 'main', '--message', contextMsg], { timeout: 120000 })
-          .then(({ stdout }) => {
-            const response = stdout.trim();
-            if (!response) return;
-            return prisma.note.create({
-              data: {
-                projectId,
-                author: 'ATLAS',
-                authorRole: 'atlas',
-                content: response,
-                noteType: 'update'
-              }
-            }).then(atlasNote => {
-              mcEvents.emit('note:new', { projectId, note: atlasNote });
-            });
-          })
-          .catch(err => console.error('Atlas note response failed:', err.message));
+          execFileAsync('openclaw', ['agent', '--agent', 'main', '--message', contextMsg], { timeout: 120000 })
+            .then(({ stdout }) => {
+              const response = stdout.trim();
+              if (!response) return;
+              return prisma.note.create({
+                data: {
+                  projectId,
+                  author: 'ATLAS',
+                  authorRole: 'atlas',
+                  content: response,
+                  noteType: 'update'
+                }
+              }).then(atlasNote => {
+                mcEvents.emit('note:new', { projectId, note: atlasNote });
+              });
+            })
+            .catch(err => console.error('Atlas note response failed:', err.message));
+        }
+
+        // Notify sub-agents assigned to this project (excluding the note author)
+        const subAgents = await getProjectSubAgents(projectId, author);
+        for (const callsign of subAgents) {
+          const agentId = CALLSIGN_TO_AGENT[callsign];
+          const myTasks = project.tasks.filter(t => t.assignee === callsign);
+          const subContextMsg = [
+            `[Mission Control — Project Note: ${project.name}]`,
+            ``,
+            `${author} posted a note on project "${project.name}" (${project.status}, ${project.progress}% complete).`,
+            ``,
+            `Recent notes:`,
+            noteHistory,
+            ``,
+            myTasks.length > 0
+              ? `Your tasks on this project: ${myTasks.map(t => `"${t.title}" (${t.status})`).join(', ')}`
+              : `You have no tasks currently assigned on this project.`,
+            ``,
+            `MISSION_CONTROL_PROJECT_ID: ${projectId}`,
+            `To post a response, run:`,
+            `  mc-post note ${projectId} ${callsign} "Your message here"`
+          ].join('\n');
+
+          execFileAsync('openclaw', ['agent', '--agent', agentId, '--message', subContextMsg], { timeout: 60000 })
+            .catch(err => console.error(`Sub-agent ${callsign} note notification failed:`, err.message));
+        }
       }
     }
 
@@ -293,8 +345,8 @@ fastify.post('/api/projects/:projectId/messages', async (request, reply) => {
 
     mcEvents.emit('message:new', { projectId, message });
 
-    // Notify Atlas when a non-Atlas author posts in Discussion
-    if (author !== 'ATLAS' && authorRole !== 'atlas') {
+    // Notify Atlas and sub-agents about this message
+    {
       const project = await prisma.project.findUnique({
         where: { id: projectId },
         include: { tasks: true }
@@ -312,41 +364,73 @@ fastify.post('/api/projects/:projectId/messages', async (request, reply) => {
           return lines.join('\n');
         }).join('\n');
 
-        const contextMsg = [
-          `[Mission Control — Discussion Board: ${project.name}]`,
-          ``,
-          `A message has been posted to the Discussion board for project "${project.name}" (${project.status}, ${project.progress}% complete).`,
-          ``,
-          `Discussion thread:`,
-          thread,
-          ``,
-          `Open tasks: ${project.tasks.filter(t => !['done','completed'].includes(t.status)).map(t => `"${t.title}" (${t.status}${t.assignee ? ', ' + t.assignee : ''})`).join(', ') || 'none'}`,
-          ``,
-          `Please read the discussion and respond appropriately. Address any questions, provide status, or take action.`,
-          `Your response will be posted back to the Mission Control Discussion board.`
-        ].join('\n');
+        // Notify Atlas (unless Atlas posted it) — Atlas auto-responds with a reply
+        if (author !== 'ATLAS' && authorRole !== 'atlas') {
+          const contextMsg = [
+            `[Mission Control — Discussion Board: ${project.name}]`,
+            ``,
+            `A message has been posted to the Discussion board for project "${project.name}" (${project.status}, ${project.progress}% complete).`,
+            ``,
+            `Discussion thread:`,
+            thread,
+            ``,
+            `Open tasks: ${project.tasks.filter(t => !['done','completed'].includes(t.status)).map(t => `"${t.title}" (${t.status}${t.assignee ? ', ' + t.assignee : ''})`).join(', ') || 'none'}`,
+            ``,
+            `Please read the discussion and respond appropriately. Address any questions, provide status, or take action.`,
+            `Your response will be posted back to the Mission Control Discussion board.`
+          ].join('\n');
 
-        execFileAsync('openclaw', ['agent', '--agent', 'main', '--message', contextMsg], { timeout: 120000 })
-          .then(({ stdout }) => {
-            const response = stdout.trim();
-            if (!response) return;
-            // Append Atlas reply to the original message's replies JSON field
-            const existing = message.replies ? JSON.parse(message.replies) : [];
-            existing.push({
-              id: crypto.randomUUID(),
-              author: 'ATLAS',
-              authorRole: 'atlas',
-              content: response,
-              createdAt: new Date().toISOString()
-            });
-            return prisma.message.update({
-              where: { id: message.id },
-              data: { replies: JSON.stringify(existing) }
-            }).then(updated => {
-              mcEvents.emit('message:new', { projectId, message: updated });
-            });
-          })
-          .catch(err => console.error('Atlas message response failed:', err.message));
+          execFileAsync('openclaw', ['agent', '--agent', 'main', '--message', contextMsg], { timeout: 120000 })
+            .then(({ stdout }) => {
+              const response = stdout.trim();
+              if (!response) return;
+              // Append Atlas reply to the original message's replies JSON field
+              const existing = message.replies ? JSON.parse(message.replies) : [];
+              existing.push({
+                id: crypto.randomUUID(),
+                author: 'ATLAS',
+                authorRole: 'atlas',
+                content: response,
+                createdAt: new Date().toISOString()
+              });
+              return prisma.message.update({
+                where: { id: message.id },
+                data: { replies: JSON.stringify(existing) }
+              }).then(updated => {
+                mcEvents.emit('message:new', { projectId, message: updated });
+              });
+            })
+            .catch(err => console.error('Atlas message response failed:', err.message));
+        }
+
+        // Notify sub-agents assigned to this project (excluding the message author)
+        const subAgents = await getProjectSubAgents(projectId, author);
+        for (const callsign of subAgents) {
+          const agentId = CALLSIGN_TO_AGENT[callsign];
+          const myTasks = project.tasks.filter(t => t.assignee === callsign);
+          const subContextMsg = [
+            `[Mission Control — Discussion: ${project.name}]`,
+            ``,
+            `${author} posted a message on project "${project.name}" (${project.status}, ${project.progress}% complete).`,
+            ``,
+            `Discussion thread:`,
+            thread,
+            ``,
+            myTasks.length > 0
+              ? `Your tasks on this project: ${myTasks.map(t => `"${t.title}" (${t.status})`).join(', ')}`
+              : `You have no tasks currently assigned on this project.`,
+            ``,
+            `MISSION_CONTROL_PROJECT_ID: ${projectId}`,
+            `MESSAGE_ID: ${message.id}`,
+            `To reply, run:`,
+            `  mc-post reply ${projectId} ${message.id} ${callsign} "Your reply here"`,
+            `To post a new message, run:`,
+            `  mc-post message ${projectId} ${callsign} "Your message here"`
+          ].join('\n');
+
+          execFileAsync('openclaw', ['agent', '--agent', agentId, '--message', subContextMsg], { timeout: 60000 })
+            .catch(err => console.error(`Sub-agent ${callsign} message notification failed:`, err.message));
+        }
       }
     }
 
@@ -415,8 +499,8 @@ fastify.post('/api/projects/:projectId/messages/:messageId/reply', async (reques
 
     mcEvents.emit('message:new', { projectId, message: updated });
 
-    // Notify Atlas when a human replies — build full thread context
-    if (author !== 'ATLAS' && authorRole !== 'atlas') {
+    // Notify Atlas and sub-agents about this reply
+    {
       const project = await prisma.project.findUnique({
         where: { id: projectId },
         include: { tasks: true }
@@ -427,38 +511,68 @@ fastify.post('/api/projects/:projectId/messages/:messageId/reply', async (reques
           ...existing.map(r => `    ↳ [${r.author}]: ${r.content}`)
         ].join('\n');
 
-        const contextMsg = [
-          `[Mission Control — Discussion Reply: ${project.name}]`,
-          ``,
-          `A reply has been posted in the Discussion board for project "${project.name}" (${project.status}, ${project.progress}% complete).`,
-          ``,
-          `Thread:`,
-          threadLines,
-          ``,
-          `Open tasks: ${project.tasks.filter(t => !['done','completed'].includes(t.status)).map(t => `"${t.title}" (${t.status}${t.assignee ? ', ' + t.assignee : ''})`).join(', ') || 'none'}`,
-          ``,
-          `Please respond to the latest reply. Your response will be appended to this thread.`
-        ].join('\n');
+        // Notify Atlas (unless Atlas posted it) — Atlas auto-responds
+        if (author !== 'ATLAS' && authorRole !== 'atlas') {
+          const contextMsg = [
+            `[Mission Control — Discussion Reply: ${project.name}]`,
+            ``,
+            `A reply has been posted in the Discussion board for project "${project.name}" (${project.status}, ${project.progress}% complete).`,
+            ``,
+            `Thread:`,
+            threadLines,
+            ``,
+            `Open tasks: ${project.tasks.filter(t => !['done','completed'].includes(t.status)).map(t => `"${t.title}" (${t.status}${t.assignee ? ', ' + t.assignee : ''})`).join(', ') || 'none'}`,
+            ``,
+            `Please respond to the latest reply. Your response will be appended to this thread.`
+          ].join('\n');
 
-        execFileAsync('openclaw', ['agent', '--agent', 'main', '--message', contextMsg], { timeout: 120000 })
-          .then(({ stdout }) => {
-            const response = stdout.trim();
-            if (!response) return;
-            const withAtlas = [...existing, {
-              id: crypto.randomUUID(),
-              author: 'ATLAS',
-              authorRole: 'atlas',
-              content: response,
-              createdAt: new Date().toISOString()
-            }];
-            return prisma.message.update({
-              where: { id: messageId },
-              data: { replies: JSON.stringify(withAtlas) }
-            }).then(final => {
-              mcEvents.emit('message:new', { projectId, message: final });
-            });
-          })
-          .catch(err => console.error('Atlas reply response failed:', err.message));
+          execFileAsync('openclaw', ['agent', '--agent', 'main', '--message', contextMsg], { timeout: 120000 })
+            .then(({ stdout }) => {
+              const response = stdout.trim();
+              if (!response) return;
+              const withAtlas = [...existing, {
+                id: crypto.randomUUID(),
+                author: 'ATLAS',
+                authorRole: 'atlas',
+                content: response,
+                createdAt: new Date().toISOString()
+              }];
+              return prisma.message.update({
+                where: { id: messageId },
+                data: { replies: JSON.stringify(withAtlas) }
+              }).then(final => {
+                mcEvents.emit('message:new', { projectId, message: final });
+              });
+            })
+            .catch(err => console.error('Atlas reply response failed:', err.message));
+        }
+
+        // Notify sub-agents assigned to this project (excluding the reply author)
+        const subAgents = await getProjectSubAgents(projectId, author);
+        for (const callsign of subAgents) {
+          const agentId = CALLSIGN_TO_AGENT[callsign];
+          const myTasks = project.tasks.filter(t => t.assignee === callsign);
+          const subContextMsg = [
+            `[Mission Control — Discussion Reply: ${project.name}]`,
+            ``,
+            `${author} replied in the Discussion board for project "${project.name}" (${project.status}, ${project.progress}% complete).`,
+            ``,
+            `Thread:`,
+            threadLines,
+            ``,
+            myTasks.length > 0
+              ? `Your tasks on this project: ${myTasks.map(t => `"${t.title}" (${t.status})`).join(', ')}`
+              : `You have no tasks currently assigned on this project.`,
+            ``,
+            `MISSION_CONTROL_PROJECT_ID: ${projectId}`,
+            `MESSAGE_ID: ${message.id}`,
+            `To reply, run:`,
+            `  mc-post reply ${projectId} ${message.id} ${callsign} "Your reply here"`
+          ].join('\n');
+
+          execFileAsync('openclaw', ['agent', '--agent', agentId, '--message', subContextMsg], { timeout: 60000 })
+            .catch(err => console.error(`Sub-agent ${callsign} reply notification failed:`, err.message));
+        }
       }
     }
 
