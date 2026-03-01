@@ -146,16 +146,33 @@ export default async function tasksRoutes(fastify, options) {
           }
         });
         
-        // Recalculate project progress
-        const tasks = await fastify.prisma.task.findMany({ 
-          where: { projectId: existingTask.projectId } 
+        // Recalculate project progress and auto-update status
+        const tasks = await fastify.prisma.task.findMany({
+          where: { projectId: existingTask.projectId }
         });
-        const completedTasks = tasks.filter(t => t.status === 'done').length;
-        const progress = Math.round((completedTasks / tasks.length) * 100);
-        
+        const doneTasks = tasks.filter(t => ['done', 'completed'].includes(t.status));
+        const progress = Math.round((doneTasks.length / tasks.length) * 100);
+
+        // Auto-derive project status from task completion
+        // (don't override manually-set on_hold or blocked)
+        const currentProject = await fastify.prisma.project.findUnique({
+          where: { id: existingTask.projectId }
+        });
+        const manualStatuses = ['blocked', 'on_hold'];
+        let autoStatus = null;
+        if (!manualStatuses.includes(currentProject.status)) {
+          if (doneTasks.length === 0) {
+            autoStatus = 'not_started';
+          } else if (doneTasks.length === tasks.length) {
+            autoStatus = 'completed';
+          } else {
+            autoStatus = 'in_progress';
+          }
+        }
+
         await fastify.prisma.project.update({
           where: { id: existingTask.projectId },
-          data: { progress }
+          data: { progress, ...(autoStatus && { status: autoStatus }) }
         });
       }
       
