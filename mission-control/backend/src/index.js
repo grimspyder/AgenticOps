@@ -131,9 +131,10 @@ fastify.register(websocketRoutes);
 // Activity routes
 fastify.get('/api/activities', async (request, reply) => {
   try {
+    const limit = Math.min(parseInt(request.query.limit) || 100, 500);
     const activities = await prisma.activity.findMany({
       orderBy: { createdAt: 'desc' },
-      take: 50,
+      take: limit,
       include: { project: true, agent: true }
     });
     return activities;

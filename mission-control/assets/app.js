@@ -590,7 +590,7 @@ const App = {
     
     renderActivity() {
         const container = document.getElementById('activity-feed');
-        const activities = DataStore.getActivities(10);
+        const activities = DataStore.getActivities(20);
 
         container.innerHTML = activities.map(activity => {
             const iconClass = this.getActivityIcon(activity.type, activity.action);
@@ -1271,10 +1271,10 @@ const App = {
         document.getElementById('newMessageModal').classList.add('open');
         document.getElementById('modalOverlay').classList.add('open');
         
-        // Populate author dropdown with agents
+        // Populate author dropdown — Human first so Atlas gets notified
         const select = document.getElementById('messageAuthor');
-        select.innerHTML = DataStore.agents.map(a => `<option value="${a.name}">${a.name}</option>`).join('') +
-            '<option value="Human">Human</option>';
+        select.innerHTML = '<option value="Human" selected>Human (You)</option>' +
+            DataStore.agents.map(a => `<option value="${a.name}">${a.name}</option>`).join('');
     },
     
     closeNewMessageModal() {
@@ -1305,8 +1305,8 @@ const App = {
     openReplyModal(messageId) {
         if (!this.selectedProject) return;
         document.getElementById('replyMessageId').value = messageId;
-        document.getElementById('replyAuthor').innerHTML = DataStore.agents.map(a => `<option value="${a.name}">${a.name}</option>`).join('') +
-            '<option value="Human">Human</option>';
+        document.getElementById('replyAuthor').innerHTML = '<option value="Human" selected>Human (You)</option>' +
+            DataStore.agents.map(a => `<option value="${a.name}">${a.name}</option>`).join('');
         document.getElementById('replyModal').classList.add('open');
         document.getElementById('modalOverlay').classList.add('open');
     },
